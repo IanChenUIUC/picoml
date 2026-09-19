@@ -23,6 +23,7 @@ yy::parser::symbol_type yylex();
 %define api.value.type variant
 %define api.value.automove
 
+%precedence	IN
 %precedence	ELSE MAPSTO
 %right		OP
 
@@ -44,6 +45,8 @@ yy::parser::symbol_type yylex();
 %type	<Evaluation>	EvalAppFun
 %type	<Evaluation>	EvalAppArg
 %type	<Evaluation>	EvalFun
+%type	<Evaluation>	EvalLet
+%type	<Evaluation>	EvalLetBinding
 
 %type	<Value>			value
 %type	<Expression>	expr
@@ -68,21 +71,23 @@ yy::parser::symbol_type yylex();
 
 %%
 
-input 	: EvalConst 	{ result = $1; }
-		| EvalVar 		{ result = $1; }
-		| EvalPair		{ result = $1; }
-		| EvalPairFst 	{ result = $1; }
-		| EvalPairSnd 	{ result = $1; }
-		| EvalIfTrue 	{ result = $1; }
-		| EvalIfFalse 	{ result = $1; }
-		| EvalIf 		{ result = $1; }
-		| EvalPrimOp 	{ result = $1; }
-		| EvalPrimOpL 	{ result = $1; }
-		| EvalPrimOpR 	{ result = $1; }
-		| EvalApp 		{ result = $1; }
-		| EvalAppFun 	{ result = $1; }
-		| EvalAppArg 	{ result = $1; }
-		| EvalFun 		{ result = $1; }
+input 	: EvalConst 		{ result = $1; }
+		| EvalVar 			{ result = $1; }
+		| EvalPair			{ result = $1; }
+		| EvalPairFst 		{ result = $1; }
+		| EvalPairSnd 		{ result = $1; }
+		| EvalIfTrue 		{ result = $1; }
+		| EvalIfFalse 		{ result = $1; }
+		| EvalIf 			{ result = $1; }
+		| EvalPrimOp 		{ result = $1; }
+		| EvalPrimOpL 		{ result = $1; }
+		| EvalPrimOpR 		{ result = $1; }
+		| EvalApp 			{ result = $1; }
+		| EvalAppFun 		{ result = $1; }
+		| EvalAppArg 		{ result = $1; }
+		| EvalFun 			{ result = $1; }
+		| EvalLet 			{ result = $1; }
+		| EvalLetBinding	{ result = $1; }
 		;
 
 EvalConst
@@ -163,6 +168,15 @@ EvalFun	: EVAL '(' FUN VARIABLE MAPSTO expr ',' env ')'
 			{ $$ = Evaluation::makeEvalFun($VARIABLE, $expr, $env); }
 		;
 
+EvalLet : EVAL '(' LET VARIABLE EQUAL VAL value IN expr[body] ',' env ')'
+			{ $$ = Evaluation::makeEvalLet($VARIABLE, $value, $body, $env); }
+		;
+
+EvalLetBinding
+		 : EVAL '(' LET VARIABLE EQUAL expr[pre] IN expr[body] ',' env ')'
+			{ $$ = Evaluation::makeEvalLetBinding($VARIABLE, $pre, $body, $env); }
+		;
+
 env		: '{' binding_list[bindings] '}'
 			{ $$ = Environment($bindings); }
 		;
@@ -223,6 +237,8 @@ expr	: app
 			{ $$ = Expression::makeIf($pred, $dotrue, $dofalse); }
 		| expr[left] OP expr[right]
 			{ $$ = Expression::makeBinary($left, $right, $OP); }
+		| LET VARIABLE EQUAL expr[pre] IN expr[body]
+			{ $$ = Expression::makeLet($VARIABLE, $pre, $body); }
 		;
 
 %%

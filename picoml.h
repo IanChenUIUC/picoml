@@ -105,7 +105,16 @@ struct Expression
         std::unique_ptr<Expression> arg;
     };
 
-    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr> expr;
+    struct LetExpr
+    {
+        std::unique_ptr<Variable> var;
+        std::unique_ptr<Expression> pre;
+        std::unique_ptr<Expression> body;
+
+        LetExpr(std::unique_ptr<Variable> var, std::unique_ptr<Expression> pre, std::unique_ptr<Expression> body);
+    };
+
+    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr, LetExpr> expr;
 
     Expression() = default;
     Expression(Value &&val);
@@ -116,6 +125,7 @@ struct Expression
     static Expression makePair(Expression &&left, Expression &&right);
     static Expression makeFunction(Variable &&param, Expression &&body);
     static Expression makeApp(Expression &&fun, Expression &&arg);
+    static Expression makeLet(Variable &&var, Expression &&pre, Expression &&body);
 };
 
 struct Binding
@@ -289,8 +299,30 @@ struct Evaluation
         EvalFun(Variable &&param, Expression &&body, Environment &&env);
     };
 
+    struct EvalLet
+    {
+        std::unique_ptr<Variable> var;
+        std::unique_ptr<Value> val;
+        std::unique_ptr<Expression> body;
+        std::unique_ptr<Environment> env;
+
+        EvalLet() = default;
+        EvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env);
+    };
+
+    struct EvalLetBinding
+    {
+        std::unique_ptr<Variable> var;
+        std::unique_ptr<Expression> pre;
+        std::unique_ptr<Expression> body;
+        std::unique_ptr<Environment> env;
+
+        EvalLetBinding() = default;
+        EvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env);
+    };
+
     std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf, EvalPrimOp,
-                 EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg, EvalFun>
+                 EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg, EvalFun, EvalLet, EvalLetBinding>
         eval;
 
     Evaluation() = default;
@@ -310,6 +342,8 @@ struct Evaluation
     static Evaluation makeEvalAppFun(Expression &&fun, Environment &&outside, Value &&arg);
     static Evaluation makeEvalAppArg(Expression &&fun, Expression &&arg, Environment &&outside);
     static Evaluation makeEvalFun(Variable &&param, Expression &&body, Environment &&env);
+    static Evaluation makeEvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env);
+    static Evaluation makeEvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env);
 };
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);

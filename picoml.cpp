@@ -34,6 +34,12 @@ Expression::FunExpr::FunExpr(std::unique_ptr<Variable> param, std::unique_ptr<Ex
 {
 }
 
+Expression::LetExpr::LetExpr(std::unique_ptr<Variable> var, std::unique_ptr<Expression> pre,
+                             std::unique_ptr<Expression> body)
+    : var(std::move(var)), pre(std::move(pre)), body(std::move(body))
+{
+}
+
 Value::Value(int integer) : val(integer) {};
 
 Value::Value(bool boolean) : val(boolean) {};
@@ -96,6 +102,14 @@ Expression Expression::makeApp(Expression &&fun, Expression &&arg)
     Expression expression;
     expression.expr =
         AppExpr{std::make_unique<Expression>(std::move(fun)), std::make_unique<Expression>(std::move(arg))};
+    return expression;
+}
+
+Expression Expression::makeLet(Variable &&var, Expression &&pre, Expression &&body)
+{
+    Expression expression;
+    expression.expr = LetExpr(std::make_unique<Variable>(std::move(var)), std::make_unique<Expression>(std::move(pre)),
+                              std::make_unique<Expression>(std::move(body)));
     return expression;
 }
 
@@ -199,6 +213,18 @@ Evaluation::EvalFun::EvalFun(Variable &&param, Expression &&body, Environment &&
 {
 }
 
+Evaluation::EvalLet::EvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env)
+    : var(std::make_unique<Variable>(std::move(var))), val(std::make_unique<Value>(std::move(val))),
+      body(std::make_unique<Expression>(std::move(body))), env(std::make_unique<Environment>(std::move(env)))
+{
+}
+
+Evaluation::EvalLetBinding::EvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env)
+    : var(std::make_unique<Variable>(std::move(var))), pre(std::make_unique<Expression>(std::move(pre))),
+      body(std::make_unique<Expression>(std::move(body))), env(std::make_unique<Environment>(std::move(env)))
+{
+}
+
 Evaluation::Evaluation(EvalConst &&eval) : eval(std::move(eval))
 {
 }
@@ -298,6 +324,20 @@ Evaluation Evaluation::makeEvalFun(Variable &&param, Expression &&body, Environm
     return evaluation;
 }
 
+Evaluation Evaluation::makeEvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalLet(std::move(var), std::move(val), std::move(body), std::move(env));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalLetBinding(std::move(var), std::move(pre), std::move(body), std::move(env));
+    return evaluation;
+}
+
 template <class> inline constexpr bool always_false_v = false;
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop)
@@ -358,6 +398,8 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << "fun " << *arg.param << " -> " << *arg.body;
             else if constexpr (std::is_same_v<T, Expression::AppExpr>)
                 os << "(" << *arg.fun << " " << *arg.arg << ")";
+            else if constexpr (std::is_same_v<T, Expression::LetExpr>)
+                os << "let " << *arg.var << " = " << *arg.pre << " in " << *arg.body;
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
@@ -423,6 +465,12 @@ std::ostream &operator<<(std::ostream &os, const Evaluation &eval)
                 os << "EvalAppArg(" << *arg.fun << " " << *arg.arg << ", " << *arg.outside << ")";
             else if constexpr (std::is_same_v<T, Evaluation::EvalFun>)
                 os << "EvalFun(fun " << *arg.param << " -> " << *arg.body << ", " << *arg.env << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalLet>)
+                os << "EvalLet(let " << *arg.var << " = Val " << *arg.val << " in " << *arg.body << ", " << *arg.env
+                   << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalLetBinding>)
+                os << "EvalLetBinding(let " << *arg.var << " = " << *arg.pre << " in " << *arg.body << ", "
+                   << *arg.env << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
