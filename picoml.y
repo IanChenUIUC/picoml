@@ -23,6 +23,8 @@ yy::parser::symbol_type yylex();
 %define api.value.type variant
 %define api.value.automove
 
+%parse-param { Evaluation &result }
+
 %type	<Evaluation>	input
 %type 	<Evaluation>	EvalConst
 %type	<Value>			value
@@ -44,7 +46,7 @@ yy::parser::symbol_type yylex();
 %%
 
 input 	: EvalConst
-			{ $$ = $EvalConst; }
+			{ result = $EvalConst; }
 		;
 
 env		: '{' binding_list[bindings] '}'

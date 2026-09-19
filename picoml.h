@@ -2,6 +2,7 @@
 #define __PICOML_H
 
 #include <memory>
+#include <ostream>
 #include <string>
 #include <variant>
 #include <vector>
@@ -98,5 +99,13 @@ struct Evaluation
     Evaluation() = default;
     Evaluation(EvalConst &&eval);
 };
+
+std::ostream &operator<<(std::ostream &os, const Value &value);
+std::ostream &operator<<(std::ostream &os, const Variable &variable);
+std::ostream &operator<<(std::ostream &os, const Expression &expression);
+std::ostream &operator<<(std::ostream &os, const Binding &binding);
+std::ostream &operator<<(std::ostream &os, const Bindings &bindings);
+std::ostream &operator<<(std::ostream &os, const Environment &env);
+std::ostream &operator<<(std::ostream &os, const Evaluation &eval);
 
 #endif

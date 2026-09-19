@@ -55,6 +55,11 @@ int main(void)
         auto token = yylex();
         if (token.kind() == kind::S_YYEOF)
             break;
-        std::cout << token_to_string(token.kind()) << "\n";
+        std::cout << token_to_string(token.kind());
+        if (token.kind() == kind::S_CONST)
+            std::cout << " " << token.value.as<Value>();
+        else if (token.kind() == kind::S_VARIABLE)
+            std::cout << " " << token.value.as<Variable>();
+        std::cout << "\n";
     };
 };
