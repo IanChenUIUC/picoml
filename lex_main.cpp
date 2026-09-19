@@ -23,10 +23,6 @@ std::string token_to_string(kind::symbol_kind_type token)
         return "<then>";
     case kind::S_ELSE:
         return "<else>";
-    case kind::S_TRUE:
-        return "<true>";
-    case kind::S_FALSE:
-        return "<false>";
     case kind::S_LET:
         return "<let>";
     case kind::S_IN:
@@ -39,7 +35,11 @@ std::string token_to_string(kind::symbol_kind_type token)
         return "<mapsto>";
     case kind::S_OP:
         return "<op>";
-    case kind::S_CONST:
+    case kind::S_INTEGER:
+        return "<const>";
+    case kind::S_TRUE:
+        return "<const>";
+    case kind::S_FALSE:
         return "<const>";
     case kind::S_ERROR:
         return "<error>";
@@ -56,8 +56,10 @@ int main(void)
         if (token.kind() == kind::S_YYEOF)
             break;
         std::cout << token_to_string(token.kind());
-        if (token.kind() == kind::S_CONST)
-            std::cout << " " << token.value.as<Value>();
+        if (token.kind() == kind::S_INTEGER)
+            std::cout << " " << token.value.as<int>();
+        else if (token.kind() == kind::S_TRUE || token.kind() == kind::S_FALSE)
+            std::cout << " " << std::boolalpha << token.value.as<bool>();
         else if (token.kind() == kind::S_VARIABLE)
             std::cout << " " << token.value.as<Variable>();
         else if (token.kind() == kind::S_OP)

@@ -31,6 +31,8 @@ Expression::BinaryExpr::BinaryExpr(std::unique_ptr<Expression> left, std::unique
 
 Value::Value(int integer) : val(integer) {};
 
+Value::Value(bool boolean) : val(boolean) {};
+
 Value Value::makeFunction(Variable &&param, Expression &&body, Environment &&env)
 {
     Value value;
@@ -118,6 +120,22 @@ Evaluation::EvalPairSnd::EvalPairSnd(Expression &&left, Expression &&right)
 {
 }
 
+Evaluation::EvalIfTrue::EvalIfTrue(Expression &&dotrue, Expression &&dofalse)
+    : dotrue(std::make_unique<Expression>(std::move(dotrue))), dofalse(std::make_unique<Expression>(std::move(dofalse)))
+{
+}
+
+Evaluation::EvalIfFalse::EvalIfFalse(Expression &&dotrue, Expression &&dofalse)
+    : dotrue(std::make_unique<Expression>(std::move(dotrue))), dofalse(std::make_unique<Expression>(std::move(dofalse)))
+{
+}
+
+Evaluation::EvalIf::EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
+    : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
+      dofalse(std::make_unique<Expression>(std::move(dofalse)))
+{
+}
+
 Evaluation::Evaluation(EvalConst &&eval) : eval(std::move(eval))
 {
 }
@@ -147,6 +165,27 @@ Evaluation Evaluation::makeEvalPairSnd(Expression &&left, Expression &&right)
     return evaluation;
 }
 
+Evaluation Evaluation::makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalIfTrue(std::move(dotrue), std::move(dofalse));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalIfFalse(std::move(dotrue), std::move(dofalse));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalIf(std::move(pred), std::move(dotrue), std::move(dofalse));
+    return evaluation;
+}
+
 template <class> inline constexpr bool always_false_v = false;
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop)
@@ -172,6 +211,8 @@ std::ostream &operator<<(std::ostream &os, const Value &value)
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, int>)
                 os << "INTEGER(" << arg << ")";
+            else if constexpr (std::is_same_v<T, bool>)
+                os << "BOOLEAN(" << std::boolalpha << arg << ")";
             else if constexpr (std::is_same_v<T, Value::Function>)
                 os << "FUNCTION(" << *arg.param << " -> " << *arg.body << ", " << *arg.env << ")";
             else if constexpr (std::is_same_v<T, Value::Pair>)
@@ -245,6 +286,12 @@ std::ostream &operator<<(std::ostream &os, const Evaluation &eval)
                 os << "EvalPairFst(" << *arg.left << ", Val " << *arg.right << ")";
             else if constexpr (std::is_same_v<T, Evaluation::EvalPairSnd>)
                 os << "EvalPairSnd(" << *arg.left << ", " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalIfTrue>)
+                os << "EvalIfTrue(if Val true then " << *arg.dotrue << " else " << *arg.dofalse << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalIfFalse>)
+                os << "EvalIfFalse(if Val false then " << *arg.dotrue << " else " << *arg.dofalse << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalIf>)
+                os << "EvalIf(if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },

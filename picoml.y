@@ -31,6 +31,9 @@ yy::parser::symbol_type yylex();
 %type 	<Evaluation>	EvalPair
 %type 	<Evaluation>	EvalPairFst
 %type 	<Evaluation>	EvalPairSnd
+%type 	<Evaluation>	EvalIfTrue
+%type 	<Evaluation>	EvalIfFalse
+%type 	<Evaluation>	EvalIf
 
 %type	<Value>			value
 %type	<Expression>	expr
@@ -38,12 +41,15 @@ yy::parser::symbol_type yylex();
 %type	<Bindings>		binding_list
 %type	<Environment>	env
 
-%token	<Variable> 	VARIABLE
-%token	<Value> 	CONST
-%token	<BinOp>		OP
+%token	<Variable> 		VARIABLE
+%token	<BinOp>			OP
+
+%token	<int> 			INTEGER
+%token	<bool> 			TRUE
+%token	<bool> 			FALSE
 
 %token	EVAL VAL
-%token 	IF THEN ELSE TRUE FALSE
+%token 	IF THEN ELSE
 %token	LET IN EQUAL
 %token	FUN	MAPSTO
 %token	ERROR
@@ -55,11 +61,18 @@ input 	: EvalConst 	{ result = $1; }
 		| EvalPair		{ result = $1; }
 		| EvalPairFst 	{ result = $1; }
 		| EvalPairSnd 	{ result = $1; }
+		| EvalIfTrue 	{ result = $1; }
+		| EvalIfFalse 	{ result = $1; }
+		| EvalIf 		{ result = $1; }
 		;
 
 EvalConst
-		: EVAL '(' CONST ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalConst($CONST)); }
+		: EVAL '(' INTEGER ',' env ')'
+			{ $$ = Evaluation(Evaluation::EvalConst($INTEGER)); }
+		| EVAL '(' TRUE ',' env ')'
+			{ $$ = Evaluation(Evaluation::EvalConst($TRUE)); }
+		| EVAL '(' FALSE ',' env ')'
+			{ $$ = Evaluation(Evaluation::EvalConst($FALSE)); }
 		;
 
 EvalVar	: EVAL '(' VARIABLE ',' env ')'
@@ -81,6 +94,20 @@ EvalPairSnd
 			{ $$ = Evaluation::makeEvalPairSnd($left, $right); }
 		;
 
+EvalIfTrue
+		: EVAL '(' IF VAL TRUE THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
+			{ $$ = Evaluation::makeEvalIfTrue($dotrue, $dofalse); }
+		;
+
+EvalIfFalse
+		: EVAL '(' IF VAL FALSE THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
+			{ $$ = Evaluation::makeEvalIfFalse($dotrue, $dofalse); }
+		;
+EvalIf
+		: EVAL '(' IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
+			{ $$ = Evaluation::makeEvalIf($pred, $dotrue, $dofalse); }
+		;
+
 env		: '{' binding_list[bindings] '}'
 			{ $$ = Environment($bindings); }
 		;
@@ -97,20 +124,30 @@ binding_list
 			{ $$ = Bindings($lst, $binding); }
 		;
 
-value	: CONST
-			{ $$ = Value($CONST); }
+value	: INTEGER
+			{ $$ = Value($INTEGER); }
+		| TRUE
+			{ $$ = Value($TRUE); }
+		| FALSE
+			{ $$ = Value($FALSE); }
 		| '(' value[left] ',' value[right] ')'
 			{ $$ = Value::makePair($left, $right); }
 		| '(' value ')'
 			{ $$ = $2; }
 		;
 
-expr	: CONST
-			{ $$ = Expression($CONST); }
+expr	: INTEGER
+			{ $$ = Expression(Value($INTEGER)); }
+		| TRUE
+			{ $$ = Expression(Value($TRUE)); }
+		| FALSE
+			{ $$ = Expression(Value($FALSE)); }
 		| VARIABLE
 			{ $$ = Expression($VARIABLE); }
 		| '(' expr[left] ',' expr[right] ')'
 			{ $$ = Expression::makePair($left, $right); }
+		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
+			{ $$ = Expression::makeIf($pred, $dotrue, $dofalse); }
 		| '(' expr ')'
 			{ $$ = $2; }
 		;

@@ -46,10 +46,11 @@ struct Value
         Pair(std::unique_ptr<Value> left, std::unique_ptr<Value> right);
     };
 
-    std::variant<int, Function, Pair> val;
+    std::variant<int, bool, Function, Pair> val;
 
     Value() = default;
     Value(int integer);
+    Value(bool boolean);
 
     static Value makeFunction(Variable &&param, Expression &&body, Environment &&env);
     static Value makePair(Value &&left, Value &&right);
@@ -173,7 +174,35 @@ struct Evaluation
         EvalPairSnd(Expression &&left, Expression &&right);
     };
 
-    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd> eval;
+    struct EvalIfTrue
+    {
+        std::unique_ptr<Expression> dotrue;
+        std::unique_ptr<Expression> dofalse;
+
+        EvalIfTrue() = default;
+        EvalIfTrue(Expression &&dotrue, Expression &&dofalse);
+    };
+
+    struct EvalIfFalse
+    {
+        std::unique_ptr<Expression> dotrue;
+        std::unique_ptr<Expression> dofalse;
+
+        EvalIfFalse() = default;
+        EvalIfFalse(Expression &&dotrue, Expression &&dofalse);
+    };
+
+    struct EvalIf
+    {
+        std::unique_ptr<Expression> pred;
+        std::unique_ptr<Expression> dotrue;
+        std::unique_ptr<Expression> dofalse;
+
+        EvalIf() = default;
+        EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    };
+
+    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf> eval;
 
     Evaluation() = default;
     Evaluation(EvalConst &&eval);
@@ -182,6 +211,9 @@ struct Evaluation
     static Evaluation makeEvalPair(Value &&left, Value &&right);
     static Evaluation makeEvalPairFst(Expression &&left, Value &&right);
     static Evaluation makeEvalPairSnd(Expression &&left, Expression &&right);
+    static Evaluation makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse);
+    static Evaluation makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse);
+    static Evaluation makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
 };
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);

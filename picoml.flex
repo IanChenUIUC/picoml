@@ -16,8 +16,7 @@
 "Val"			{	return yy::parser::token::VAL;		}
 "if"			{	return yy::parser::token::IF;		}
 "then"			{	return yy::parser::token::THEN;		}
-"true"			{	return yy::parser::token::TRUE;		}
-"false"			{	return yy::parser::token::FALSE;	}
+"else"			{	return yy::parser::token::ELSE;		}
 "let"			{	return yy::parser::token::LET;		}
 "in"			{	return yy::parser::token::IN;		}
 "fun"			{	return yy::parser::token::FUN;		}
@@ -29,9 +28,9 @@
 "*"				{	return yy::parser::make_OP(BinOp::MUL);	}
 "/"				{	return yy::parser::make_OP(BinOp::DIV);	}
 
-[0-9]+			{
-					return yy::parser::make_CONST(strtod(yytext, NULL));
-				}
+[0-9]+			{ 	return yy::parser::make_INTEGER(strtod(yytext, NULL)); }
+"true"			{	return yy::parser::make_TRUE(true);		}
+"false"			{	return yy::parser::make_FALSE(false);	}
 
 [a-zA-Z_][a-zA-Z_0-9]* {
 					return yy::parser::make_VARIABLE(std::string(yytext));
