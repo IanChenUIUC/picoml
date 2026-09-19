@@ -38,11 +38,21 @@ struct Value
         Function(std::unique_ptr<Variable> param, std::unique_ptr<Expression> body, std::unique_ptr<Environment> env);
     };
 
-    std::variant<int, Function> val;
+    struct Pair
+    {
+        std::unique_ptr<Value> left;
+        std::unique_ptr<Value> right;
+
+        Pair(std::unique_ptr<Value> left, std::unique_ptr<Value> right);
+    };
+
+    std::variant<int, Function, Pair> val;
 
     Value() = default;
     Value(int integer);
-    Value(Variable &&param, Expression &&body, Environment &&env);
+
+    static Value makeFunction(Variable &&param, Expression &&body, Environment &&env);
+    static Value makePair(Value &&left, Value &&right);
 };
 
 struct Variable
@@ -74,19 +84,34 @@ struct Expression
         BinaryExpr(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, BinOp op);
     };
 
-    std::variant<Value, Variable, IfExpr, BinaryExpr> expr;
+    struct PairExpr
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
+    };
+
+    struct MixedPair
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Value> right;
+    };
+
+    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, MixedPair> expr;
 
     Expression() = default;
     Expression(Value &&val);
     Expression(Variable &&var);
-    Expression(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
-    Expression(Expression &&left, Expression &&right, BinOp &&op);
+
+    static Expression makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    static Expression makeBinary(Expression &&left, Expression &&right, BinOp &&op);
+    static Expression makePair(Expression &&left, Expression &&right);
+    static Expression makeMixedPair(Expression &&left, Value &&right);
 };
 
 struct Binding
 {
     Variable var;
-    Value val;
+    std::unique_ptr<Value> val;
 
     Binding() = default;
     Binding(Variable &&var, Value &&val);

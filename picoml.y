@@ -37,6 +37,8 @@ yy::parser::symbol_type yylex();
 %token	<Value> 	CONST
 %token	<BinOp>		OP
 
+%right	OP
+
 %token	EVAL VAL
 %token 	IF THEN ELSE TRUE FALSE
 %token	LET IN EQUAL
@@ -47,6 +49,11 @@ yy::parser::symbol_type yylex();
 
 input 	: EvalConst
 			{ result = $EvalConst; }
+		;
+
+EvalConst
+		: EVAL '(' CONST ',' env ')'
+			{ $$ = Evaluation(Evaluation::EvalConst($CONST)); }
 		;
 
 env		: '{' binding_list[bindings] '}'
@@ -65,15 +72,12 @@ binding_list
 			{ $$ = Bindings($lst, $binding); }
 		;
 
-EvalConst
-		: EVAL '(' CONST ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalConst($CONST)); }
-		;
-
 value	: CONST
 			{ $$ = Value($CONST); }
 		| FUN VARIABLE MAPSTO expr ',' env
-			{ $$ = Value($VARIABLE, $expr, $env); }
+			{ $$ = Value::makeFunction($VARIABLE, $expr, $env); }
+		| '(' value[left] ',' value[right] ')'
+			{ $$ = Value::makePair($left, $right); }
 		| '<' value '>'
 			{ $$ = $2; }
 		;
@@ -83,7 +87,9 @@ expr	: value
 		| VARIABLE
 			{ $$ = Expression($VARIABLE); }
 		| expr[left] OP expr[right]
-			{ $$ = Expression($left, $right, $OP); }
+			{ $$ = Expression::makeBinary($left, $right, $OP); }
+		| '(' expr[left] ',' expr[right] ')'
+			{ $$ = Expression::makePair($left, $right); }
 		;
 
 %%

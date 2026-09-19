@@ -13,6 +13,11 @@ Value::Function::Function(std::unique_ptr<Variable> param, std::unique_ptr<Expre
 {
 }
 
+Value::Pair::Pair(std::unique_ptr<Value> left, std::unique_ptr<Value> right)
+    : left(std::move(left)), right(std::move(right))
+{
+}
+
 Expression::IfExpr::IfExpr(std::unique_ptr<Expression> pred, std::unique_ptr<Expression> dotrue,
                            std::unique_ptr<Expression> dofalse)
     : pred(std::move(pred)), dotrue(std::move(dotrue)), dofalse(std::move(dofalse))
@@ -25,23 +30,61 @@ Expression::BinaryExpr::BinaryExpr(std::unique_ptr<Expression> left, std::unique
 }
 
 Value::Value(int integer) : val(integer) {};
-Value::Value(Variable &&param, Expression &&body, Environment &&env)
-    : val(Function(std::make_unique<Variable>(param), std::make_unique<Expression>(std::move(body)),
-                   std::make_unique<Environment>(std::move(env))))
+
+Value Value::makeFunction(Variable &&param, Expression &&body, Environment &&env)
 {
+    Value value;
+    value.val = Function(std::make_unique<Variable>(param), std::make_unique<Expression>(std::move(body)),
+                         std::make_unique<Environment>(std::move(env)));
+    return value;
+}
+
+Value Value::makePair(Value &&left, Value &&right)
+{
+    Value value;
+    value.val = Pair(std::make_unique<Value>(std::move(left)), std::make_unique<Value>(std::move(right)));
+    return value;
 }
 
 Variable::Variable(std::string &&identifier) : identifier(std::move(identifier)) {};
 
 Expression::Expression(Value &&val) : expr(std::move(val)) {};
 Expression::Expression(Variable &&var) : expr(std::move(var)) {};
-Expression::Expression(Expression &&left, Expression &&right, BinOp &&op)
-    : expr(BinaryExpr(std::make_unique<Expression>(std::move(left)), (std::make_unique<Expression>(std::move(right))),
-                      (std::move(op))))
+
+Expression Expression::makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
 {
+    Expression expression;
+    expression.expr =
+        IfExpr(std::make_unique<Expression>(std::move(pred)), std::make_unique<Expression>(std::move(dotrue)),
+               std::make_unique<Expression>(std::move(dofalse)));
+    return expression;
 }
 
-Binding::Binding(Variable &&var, Value &&val) : var(std::move(var)), val(std::move(val))
+Expression Expression::makeBinary(Expression &&left, Expression &&right, BinOp &&op)
+{
+    Expression expression;
+    expression.expr =
+        BinaryExpr(std::make_unique<Expression>(std::move(left)), std::make_unique<Expression>(std::move(right)), op);
+    return expression;
+}
+
+Expression Expression::makePair(Expression &&left, Expression &&right)
+{
+    Expression expression;
+    expression.expr =
+        PairExpr{std::make_unique<Expression>(std::move(left)), std::make_unique<Expression>(std::move(right))};
+    return expression;
+}
+
+Expression Expression::makeMixedPair(Expression &&left, Value &&right)
+{
+    Expression expression;
+    expression.expr =
+        MixedPair{std::make_unique<Expression>(std::move(left)), std::make_unique<Value>(std::move(right))};
+    return expression;
+}
+
+Binding::Binding(Variable &&var, Value &&val) : var(std::move(var)), val(std::make_unique<Value>(std::move(val)))
 {
 }
 
@@ -94,6 +137,8 @@ std::ostream &operator<<(std::ostream &os, const Value &value)
                 os << "INTEGER(" << arg << ")";
             else if constexpr (std::is_same_v<T, Value::Function>)
                 os << "FUNCTION(" << *arg.param << " -> " << *arg.body << ", " << *arg.env << ")";
+            else if constexpr (std::is_same_v<T, Value::Pair>)
+                os << "PAIR(" << *arg.left << ", " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
@@ -117,6 +162,10 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << "if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse;
             else if constexpr (std::is_same_v<T, Expression::BinaryExpr>)
                 os << "(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Expression::PairExpr>)
+                os << "(" << *arg.left << ", " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Expression::MixedPair>)
+                os << "(" << *arg.left << ", " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
@@ -126,7 +175,7 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
 
 std::ostream &operator<<(std::ostream &os, const Binding &binding)
 {
-    return os << binding.var << " -> " << binding.val;
+    return os << binding.var << " -> " << *binding.val;
 }
 
 std::ostream &operator<<(std::ostream &os, const Bindings &bindings)
