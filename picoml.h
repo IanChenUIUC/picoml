@@ -90,13 +90,7 @@ struct Expression
         std::unique_ptr<Expression> right;
     };
 
-    struct MixedPair
-    {
-        std::unique_ptr<Expression> left;
-        std::unique_ptr<Value> right;
-    };
-
-    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, MixedPair> expr;
+    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr> expr;
 
     Expression() = default;
     Expression(Value &&val);
@@ -105,7 +99,6 @@ struct Expression
     static Expression makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     static Expression makeBinary(Expression &&left, Expression &&right, BinOp &&op);
     static Expression makePair(Expression &&left, Expression &&right);
-    static Expression makeMixedPair(Expression &&left, Value &&right);
 };
 
 struct Binding
@@ -138,16 +131,57 @@ struct Evaluation
 {
     struct EvalConst
     {
-        Value val;
+        std::unique_ptr<Value> val;
 
         EvalConst() = default;
         EvalConst(Value &&val);
     };
 
-    std::variant<EvalConst> eval;
+    struct EvalVar
+    {
+        std::unique_ptr<Variable> var;
+        std::unique_ptr<Environment> env;
+
+        EvalVar() = default;
+        EvalVar(Variable &&var, Environment &&env);
+    };
+
+    struct EvalPair
+    {
+        std::unique_ptr<Value> left;
+        std::unique_ptr<Value> right;
+
+        EvalPair() = default;
+        EvalPair(Value &&left, Value &&right);
+    };
+
+    struct EvalPairFst
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Value> right;
+
+        EvalPairFst() = default;
+        EvalPairFst(Expression &&left, Value &&right);
+    };
+
+    struct EvalPairSnd
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
+
+        EvalPairSnd() = default;
+        EvalPairSnd(Expression &&left, Expression &&right);
+    };
+
+    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd> eval;
 
     Evaluation() = default;
     Evaluation(EvalConst &&eval);
+    Evaluation(EvalVar &&eval);
+
+    static Evaluation makeEvalPair(Value &&left, Value &&right);
+    static Evaluation makeEvalPairFst(Expression &&left, Value &&right);
+    static Evaluation makeEvalPairSnd(Expression &&left, Expression &&right);
 };
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);

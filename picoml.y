@@ -27,6 +27,11 @@ yy::parser::symbol_type yylex();
 
 %type	<Evaluation>	input
 %type 	<Evaluation>	EvalConst
+%type 	<Evaluation>	EvalVar
+%type 	<Evaluation>	EvalPair
+%type 	<Evaluation>	EvalPairFst
+%type 	<Evaluation>	EvalPairSnd
+
 %type	<Value>			value
 %type	<Expression>	expr
 %type	<Binding>		binding
@@ -37,8 +42,6 @@ yy::parser::symbol_type yylex();
 %token	<Value> 	CONST
 %token	<BinOp>		OP
 
-%right	OP
-
 %token	EVAL VAL
 %token 	IF THEN ELSE TRUE FALSE
 %token	LET IN EQUAL
@@ -47,13 +50,35 @@ yy::parser::symbol_type yylex();
 
 %%
 
-input 	: EvalConst
-			{ result = $EvalConst; }
+input 	: EvalConst 	{ result = $1; }
+		| EvalVar 		{ result = $1; }
+		| EvalPair		{ result = $1; }
+		| EvalPairFst 	{ result = $1; }
+		| EvalPairSnd 	{ result = $1; }
 		;
 
 EvalConst
 		: EVAL '(' CONST ',' env ')'
 			{ $$ = Evaluation(Evaluation::EvalConst($CONST)); }
+		;
+
+EvalVar	: EVAL '(' VARIABLE ',' env ')'
+			{ $$ = Evaluation(Evaluation::EvalVar($VARIABLE, $env)); }
+		;
+
+EvalPair
+		: EVAL '(' '(' VAL value[left] ',' VAL value[right] ')' ',' env ')'
+			{ $$ = Evaluation::makeEvalPair($left, $right); }
+		;
+
+EvalPairFst
+		: EVAL '(' '(' expr[left] ',' VAL value[right] ')' ',' env ')'
+			{ $$ = Evaluation::makeEvalPairFst($left, $right); }
+		;
+
+EvalPairSnd
+		: EVAL '(' '(' expr[left] ',' expr[right] ')' ',' env ')'
+			{ $$ = Evaluation::makeEvalPairSnd($left, $right); }
 		;
 
 env		: '{' binding_list[bindings] '}'
@@ -74,22 +99,20 @@ binding_list
 
 value	: CONST
 			{ $$ = Value($CONST); }
-		| FUN VARIABLE MAPSTO expr ',' env
-			{ $$ = Value::makeFunction($VARIABLE, $expr, $env); }
 		| '(' value[left] ',' value[right] ')'
 			{ $$ = Value::makePair($left, $right); }
-		| '<' value '>'
+		| '(' value ')'
 			{ $$ = $2; }
 		;
 
-expr	: value
-			{ $$ = Expression($value); }
+expr	: CONST
+			{ $$ = Expression($CONST); }
 		| VARIABLE
 			{ $$ = Expression($VARIABLE); }
-		| expr[left] OP expr[right]
-			{ $$ = Expression::makeBinary($left, $right, $OP); }
 		| '(' expr[left] ',' expr[right] ')'
 			{ $$ = Expression::makePair($left, $right); }
+		| '(' expr ')'
+			{ $$ = $2; }
 		;
 
 %%

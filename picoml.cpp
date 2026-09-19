@@ -76,14 +76,6 @@ Expression Expression::makePair(Expression &&left, Expression &&right)
     return expression;
 }
 
-Expression Expression::makeMixedPair(Expression &&left, Value &&right)
-{
-    Expression expression;
-    expression.expr =
-        MixedPair{std::make_unique<Expression>(std::move(left)), std::make_unique<Value>(std::move(right))};
-    return expression;
-}
-
 Binding::Binding(Variable &&var, Value &&val) : var(std::move(var)), val(std::make_unique<Value>(std::move(val)))
 {
 }
@@ -102,12 +94,57 @@ Environment::Environment(Bindings &&bindings) : bindings(std::move(bindings))
 {
 }
 
+Evaluation::EvalConst::EvalConst(Value &&val) : val(std::make_unique<Value>(std::move(val)))
+{
+}
+
+Evaluation::EvalVar::EvalVar(Variable &&var, Environment &&env)
+    : var(std::make_unique<Variable>(std::move(var))), env(std::make_unique<Environment>(std::move(env)))
+{
+}
+
+Evaluation::EvalPair::EvalPair(Value &&left, Value &&right)
+    : left(std::make_unique<Value>(std::move(left))), right(std::make_unique<Value>(std::move(right)))
+{
+}
+
+Evaluation::EvalPairFst::EvalPairFst(Expression &&left, Value &&right)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Value>(std::move(right)))
+{
+}
+
+Evaluation::EvalPairSnd::EvalPairSnd(Expression &&left, Expression &&right)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right)))
+{
+}
+
 Evaluation::Evaluation(EvalConst &&eval) : eval(std::move(eval))
 {
 }
 
-Evaluation::EvalConst::EvalConst(Value &&val) : val(std::move(val))
+Evaluation::Evaluation(EvalVar &&eval) : eval(std::move(eval))
 {
+}
+
+Evaluation Evaluation::makeEvalPair(Value &&left, Value &&right)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPair(std::move(left), std::move(right));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalPairFst(Expression &&left, Value &&right)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPairFst(std::move(left), std::move(right));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalPairSnd(Expression &&left, Expression &&right)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPairSnd(std::move(left), std::move(right));
+    return evaluation;
 }
 
 template <class> inline constexpr bool always_false_v = false;
@@ -164,8 +201,6 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << "(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
             else if constexpr (std::is_same_v<T, Expression::PairExpr>)
                 os << "(" << *arg.left << ", " << *arg.right << ")";
-            else if constexpr (std::is_same_v<T, Expression::MixedPair>)
-                os << "(" << *arg.left << ", " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
@@ -201,7 +236,15 @@ std::ostream &operator<<(std::ostream &os, const Evaluation &eval)
         [&](auto &&arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Evaluation::EvalConst>)
-                os << "EvalConst(" << arg.val << ")";
+                os << "EvalConst(" << *arg.val << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalVar>)
+                os << "EvalVar(" << *arg.var << ", " << *arg.env << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPair>)
+                os << "EvalPair(Val " << *arg.left << ", Val " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPairFst>)
+                os << "EvalPairFst(" << *arg.left << ", Val " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPairSnd>)
+                os << "EvalPairSnd(" << *arg.left << ", " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
