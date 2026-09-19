@@ -23,7 +23,7 @@ yy::parser::symbol_type yylex();
 %define api.value.type variant
 %define api.value.automove
 
-%precedence	ELSE
+%precedence	ELSE MAPSTO
 %right		OP
 
 %parse-param { Evaluation &result }
@@ -40,9 +40,15 @@ yy::parser::symbol_type yylex();
 %type 	<Evaluation>	EvalPrimOp
 %type 	<Evaluation>	EvalPrimOpL
 %type 	<Evaluation>	EvalPrimOpR
+%type	<Evaluation>	EvalApp
+%type	<Evaluation>	EvalAppFun
+%type	<Evaluation>	EvalAppArg
+%type	<Evaluation>	EvalFun
 
 %type	<Value>			value
 %type	<Expression>	expr
+%type	<Expression>	atom
+%type	<Expression>	app
 %type	<Binding>		binding
 %type	<Bindings>		binding_list
 %type	<Environment>	env
@@ -73,6 +79,10 @@ input 	: EvalConst 	{ result = $1; }
 		| EvalPrimOp 	{ result = $1; }
 		| EvalPrimOpL 	{ result = $1; }
 		| EvalPrimOpR 	{ result = $1; }
+		| EvalApp 		{ result = $1; }
+		| EvalAppFun 	{ result = $1; }
+		| EvalAppArg 	{ result = $1; }
+		| EvalFun 		{ result = $1; }
 		;
 
 EvalConst
@@ -82,6 +92,8 @@ EvalConst
 			{ $$ = Evaluation(Evaluation::EvalConst($TRUE)); }
 		| EVAL '(' FALSE ',' env ')'
 			{ $$ = Evaluation(Evaluation::EvalConst($FALSE)); }
+		| EVAL '(' '<' VARIABLE MAPSTO expr ',' env[captured] '>' ',' env[outside] ')'
+			{ $$ = Evaluation(Evaluation::EvalConst(Value::makeFunction($VARIABLE, $expr, $captured))); }
 		;
 
 EvalVar	: EVAL '(' VARIABLE ',' env ')'
@@ -133,6 +145,24 @@ EvalPrimOpR
 			{ $$ = Evaluation::makeEvalPrimOpR($left, $right, $OP); }
 		;
 
+EvalApp : EVAL '(' VAL '<' VARIABLE MAPSTO expr[body] ',' env[captured] '>' VAL value ',' env[outside] ')'
+			{ $$ = Evaluation::makeEvalApp($VARIABLE, $body, $captured, $value); }
+		;
+
+EvalAppFun
+		: EVAL '(' app[fun] VAL value ',' env[outside] ')'
+			{ $$ = Evaluation::makeEvalAppFun($fun, $outside, $value); }
+		;
+
+EvalAppArg
+		: EVAL '(' app[fun] atom[arg] ',' env[outside] ')'
+			{ $$ = Evaluation::makeEvalAppArg($fun, $arg, $outside); }
+		;
+
+EvalFun	: EVAL '(' FUN VARIABLE MAPSTO expr ',' env ')'
+			{ $$ = Evaluation::makeEvalFun($VARIABLE, $expr, $env); }
+		;
+
 env		: '{' binding_list[bindings] '}'
 			{ $$ = Environment($bindings); }
 		;
@@ -157,26 +187,42 @@ value	: INTEGER
 			{ $$ = Value($FALSE); }
 		| '(' value[left] ',' value[right] ')'
 			{ $$ = Value::makePair($left, $right); }
+		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
+			{ $$ = Value::makeFunction($VARIABLE, $body, $env); }
 		| '(' value ')'
 			{ $$ = $2; }
 		;
 
-expr	: INTEGER
+atom	: VARIABLE
+			{ $$ = Expression($VARIABLE); }
+		| INTEGER
 			{ $$ = Expression(Value($INTEGER)); }
 		| TRUE
 			{ $$ = Expression(Value($TRUE)); }
 		| FALSE
 			{ $$ = Expression(Value($FALSE)); }
-		| VARIABLE
-			{ $$ = Expression($VARIABLE); }
+		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
+			{ $$ = Expression(Value::makeFunction($VARIABLE, $body, $env)); }
 		| '(' expr[left] ',' expr[right] ')'
 			{ $$ = Expression::makePair($left, $right); }
+		| '(' expr ')'
+			{ $$ = $2; }
+		;
+
+app		: app atom
+			{ $$ = Expression::makeApp($1, $2); }
+		| atom
+			{ $$ = $1; }
+		;
+
+expr	: app
+			{ $$ = $1; }
+		| FUN VARIABLE MAPSTO expr[body]
+			{ $$ = Expression::makeFunction($VARIABLE, $body); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred, $dotrue, $dofalse); }
 		| expr[left] OP expr[right]
 			{ $$ = Expression::makeBinary($left, $right, $OP); }
-		| '(' expr ')'
-			{ $$ = $2; }
 		;
 
 %%

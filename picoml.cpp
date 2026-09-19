@@ -29,6 +29,11 @@ Expression::BinaryExpr::BinaryExpr(std::unique_ptr<Expression> left, std::unique
 {
 }
 
+Expression::FunExpr::FunExpr(std::unique_ptr<Variable> param, std::unique_ptr<Expression> body)
+    : param(std::move(param)), body(std::move(body))
+{
+}
+
 Value::Value(int integer) : val(integer) {};
 
 Value::Value(bool boolean) : val(boolean) {};
@@ -75,6 +80,22 @@ Expression Expression::makePair(Expression &&left, Expression &&right)
     Expression expression;
     expression.expr =
         PairExpr{std::make_unique<Expression>(std::move(left)), std::make_unique<Expression>(std::move(right))};
+    return expression;
+}
+
+Expression Expression::makeFunction(Variable &&param, Expression &&body)
+{
+    Expression expression;
+    expression.expr =
+        FunExpr(std::make_unique<Variable>(std::move(param)), std::make_unique<Expression>(std::move(body)));
+    return expression;
+}
+
+Expression Expression::makeApp(Expression &&fun, Expression &&arg)
+{
+    Expression expression;
+    expression.expr =
+        AppExpr{std::make_unique<Expression>(std::move(fun)), std::make_unique<Expression>(std::move(arg))};
     return expression;
 }
 
@@ -154,6 +175,30 @@ Evaluation::EvalPrimOpR::EvalPrimOpR(Expression &&left, Expression &&right, BinO
 {
 }
 
+Evaluation::EvalApp::EvalApp(Variable &&param, Expression &&body, Environment &&captured, Value &&arg)
+    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
+      captured(std::make_unique<Environment>(std::move(captured))), arg(std::make_unique<Value>(std::move(arg)))
+{
+}
+
+Evaluation::EvalAppFun::EvalAppFun(Expression &&fun, Environment &&outside, Value &&arg)
+    : fun(std::make_unique<Expression>(std::move(fun))), outside(std::make_unique<Environment>(std::move(outside))),
+      arg(std::make_unique<Value>(std::move(arg)))
+{
+}
+
+Evaluation::EvalAppArg::EvalAppArg(Expression &&fun, Expression &&arg, Environment &&outside)
+    : fun(std::make_unique<Expression>(std::move(fun))), arg(std::make_unique<Expression>(std::move(arg))),
+      outside(std::make_unique<Environment>(std::move(outside)))
+{
+}
+
+Evaluation::EvalFun::EvalFun(Variable &&param, Expression &&body, Environment &&env)
+    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
+      env(std::make_unique<Environment>(std::move(env)))
+{
+}
+
 Evaluation::Evaluation(EvalConst &&eval) : eval(std::move(eval))
 {
 }
@@ -225,6 +270,34 @@ Evaluation Evaluation::makeEvalPrimOpR(Expression &&left, Expression &&right, Bi
     return evaluation;
 }
 
+Evaluation Evaluation::makeEvalApp(Variable &&param, Expression &&body, Environment &&captured, Value &&arg)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalApp(std::move(param), std::move(body), std::move(captured), std::move(arg));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalAppFun(Expression &&fun, Environment &&outside, Value &&arg)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalAppFun(std::move(fun), std::move(outside), std::move(arg));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalAppArg(Expression &&fun, Expression &&arg, Environment &&outside)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalAppArg(std::move(fun), std::move(arg), std::move(outside));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalFun(Variable &&param, Expression &&body, Environment &&env)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalFun(std::move(param), std::move(body), std::move(env));
+    return evaluation;
+}
+
 template <class> inline constexpr bool always_false_v = false;
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop)
@@ -281,6 +354,10 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << "(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
             else if constexpr (std::is_same_v<T, Expression::PairExpr>)
                 os << "(" << *arg.left << ", " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Expression::FunExpr>)
+                os << "fun " << *arg.param << " -> " << *arg.body;
+            else if constexpr (std::is_same_v<T, Expression::AppExpr>)
+                os << "(" << *arg.fun << " " << *arg.arg << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
@@ -337,6 +414,15 @@ std::ostream &operator<<(std::ostream &os, const Evaluation &eval)
                 os << "EvalPrimOpL(" << *arg.left << " " << arg.op << " Val " << *arg.right << ")";
             else if constexpr (std::is_same_v<T, Evaluation::EvalPrimOpR>)
                 os << "EvalPrimOpR(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalApp>)
+                os << "EvalApp(Val <" << *arg.param << " -> " << *arg.body << ", " << *arg.captured << "> Val "
+                   << *arg.arg << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalAppFun>)
+                os << "EvalAppFun(" << *arg.fun << " Val " << *arg.arg << ", " << *arg.outside << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalAppArg>)
+                os << "EvalAppArg(" << *arg.fun << " " << *arg.arg << ", " << *arg.outside << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalFun>)
+                os << "EvalFun(fun " << *arg.param << " -> " << *arg.body << ", " << *arg.env << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
