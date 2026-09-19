@@ -35,7 +35,7 @@ struct Value
         std::unique_ptr<Expression> body;
         std::unique_ptr<Environment> env;
 
-        Function(std::unique_ptr<Variable> param, std::unique_ptr<Expression> body, std::unique_ptr<Environment> env);
+        Function(Variable &&param, Expression &&body, Environment &&env);
     };
 
     struct Pair
@@ -43,14 +43,14 @@ struct Value
         std::unique_ptr<Value> left;
         std::unique_ptr<Value> right;
 
-        Pair(std::unique_ptr<Value> left, std::unique_ptr<Value> right);
+        Pair(Value &&left, Value &&right);
     };
 
-    std::variant<int, bool, Function, Pair> val;
+    using Alternative = std::variant<int, bool, Function, Pair>;
 
-    Value() = default;
-    Value(int integer);
-    Value(bool boolean);
+    Alternative val;
+
+    explicit Value(Alternative &&alternative);
 
     static Value makeFunction(Variable &&param, Expression &&body, Environment &&env);
     static Value makePair(Value &&left, Value &&right);
@@ -72,8 +72,7 @@ struct Expression
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
 
-        IfExpr(std::unique_ptr<Expression> pred, std::unique_ptr<Expression> dotrue,
-               std::unique_ptr<Expression> dofalse);
+        IfExpr(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
     struct BinaryExpr
@@ -82,13 +81,15 @@ struct Expression
         std::unique_ptr<Expression> right;
         BinOp op;
 
-        BinaryExpr(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, BinOp op);
+        BinaryExpr(Expression &&left, Expression &&right, BinOp op);
     };
 
     struct PairExpr
     {
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
+
+        PairExpr(Expression &&left, Expression &&right);
     };
 
     struct FunExpr
@@ -96,13 +97,15 @@ struct Expression
         std::unique_ptr<Variable> param;
         std::unique_ptr<Expression> body;
 
-        FunExpr(std::unique_ptr<Variable> param, std::unique_ptr<Expression> body);
+        FunExpr(Variable &&param, Expression &&body);
     };
 
     struct AppExpr
     {
         std::unique_ptr<Expression> fun;
         std::unique_ptr<Expression> arg;
+
+        AppExpr(Expression &&fun, Expression &&arg);
     };
 
     struct LetExpr
@@ -111,17 +114,17 @@ struct Expression
         std::unique_ptr<Expression> pre;
         std::unique_ptr<Expression> body;
 
-        LetExpr(std::unique_ptr<Variable> var, std::unique_ptr<Expression> pre, std::unique_ptr<Expression> body);
+        LetExpr(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr, LetExpr> expr;
+    using Alternative = std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr, LetExpr>;
 
-    Expression() = default;
-    Expression(Value &&val);
-    Expression(Variable &&var);
+    Alternative expr;
+
+    explicit Expression(Alternative &&alternative);
 
     static Expression makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
-    static Expression makeBinary(Expression &&left, Expression &&right, BinOp &&op);
+    static Expression makeBinary(Expression &&left, Expression &&right, BinOp op);
     static Expression makePair(Expression &&left, Expression &&right);
     static Expression makeFunction(Variable &&param, Expression &&body);
     static Expression makeApp(Expression &&fun, Expression &&arg);
@@ -130,7 +133,7 @@ struct Expression
 
 struct Binding
 {
-    Variable var;
+    std::unique_ptr<Variable> var;
     std::unique_ptr<Value> val;
 
     Binding() = default;
@@ -154,23 +157,20 @@ struct Environment
     Environment(Bindings &&bindings);
 };
 
-struct Evaluation
+struct Rule
 {
     struct EvalConst
     {
         std::unique_ptr<Value> val;
 
-        EvalConst() = default;
         EvalConst(Value &&val);
     };
 
     struct EvalVar
     {
         std::unique_ptr<Variable> var;
-        std::unique_ptr<Environment> env;
 
-        EvalVar() = default;
-        EvalVar(Variable &&var, Environment &&env);
+        EvalVar(Variable &&var);
     };
 
     struct EvalPair
@@ -178,7 +178,6 @@ struct Evaluation
         std::unique_ptr<Value> left;
         std::unique_ptr<Value> right;
 
-        EvalPair() = default;
         EvalPair(Value &&left, Value &&right);
     };
 
@@ -187,7 +186,6 @@ struct Evaluation
         std::unique_ptr<Expression> left;
         std::unique_ptr<Value> right;
 
-        EvalPairFst() = default;
         EvalPairFst(Expression &&left, Value &&right);
     };
 
@@ -196,7 +194,6 @@ struct Evaluation
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
 
-        EvalPairSnd() = default;
         EvalPairSnd(Expression &&left, Expression &&right);
     };
 
@@ -205,7 +202,6 @@ struct Evaluation
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
 
-        EvalIfTrue() = default;
         EvalIfTrue(Expression &&dotrue, Expression &&dofalse);
     };
 
@@ -214,7 +210,6 @@ struct Evaluation
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
 
-        EvalIfFalse() = default;
         EvalIfFalse(Expression &&dotrue, Expression &&dofalse);
     };
 
@@ -224,7 +219,6 @@ struct Evaluation
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
 
-        EvalIf() = default;
         EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
@@ -234,7 +228,6 @@ struct Evaluation
         std::unique_ptr<Value> right;
         BinOp op;
 
-        EvalPrimOp() = default;
         EvalPrimOp(Value &&left, Value &&right, BinOp op);
     };
 
@@ -244,7 +237,6 @@ struct Evaluation
         std::unique_ptr<Value> right;
         BinOp op;
 
-        EvalPrimOpL() = default;
         EvalPrimOpL(Expression &&left, Value &&right, BinOp op);
     };
 
@@ -254,7 +246,6 @@ struct Evaluation
         std::unique_ptr<Expression> right;
         BinOp op;
 
-        EvalPrimOpR() = default;
         EvalPrimOpR(Expression &&left, Expression &&right, BinOp op);
     };
 
@@ -265,38 +256,31 @@ struct Evaluation
         std::unique_ptr<Environment> captured;
         std::unique_ptr<Value> arg;
 
-        EvalApp() = default;
         EvalApp(Variable &&param, Expression &&body, Environment &&captured, Value &&arg);
     };
 
     struct EvalAppFun
     {
         std::unique_ptr<Expression> fun;
-        std::unique_ptr<Environment> outside;
         std::unique_ptr<Value> arg;
 
-        EvalAppFun() = default;
-        EvalAppFun(Expression &&fun, Environment &&outside, Value &&arg);
+        EvalAppFun(Expression &&fun, Value &&arg);
     };
 
     struct EvalAppArg
     {
         std::unique_ptr<Expression> fun;
         std::unique_ptr<Expression> arg;
-        std::unique_ptr<Environment> outside;
 
-        EvalAppArg() = default;
-        EvalAppArg(Expression &&fun, Expression &&arg, Environment &&outside);
+        EvalAppArg(Expression &&fun, Expression &&arg);
     };
 
     struct EvalFun
     {
         std::unique_ptr<Variable> param;
         std::unique_ptr<Expression> body;
-        std::unique_ptr<Environment> env;
 
-        EvalFun() = default;
-        EvalFun(Variable &&param, Expression &&body, Environment &&env);
+        EvalFun(Variable &&param, Expression &&body);
     };
 
     struct EvalLet
@@ -304,10 +288,8 @@ struct Evaluation
         std::unique_ptr<Variable> var;
         std::unique_ptr<Value> val;
         std::unique_ptr<Expression> body;
-        std::unique_ptr<Environment> env;
 
-        EvalLet() = default;
-        EvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env);
+        EvalLet(Variable &&var, Value &&val, Expression &&body);
     };
 
     struct EvalLetBinding
@@ -315,35 +297,44 @@ struct Evaluation
         std::unique_ptr<Variable> var;
         std::unique_ptr<Expression> pre;
         std::unique_ptr<Expression> body;
-        std::unique_ptr<Environment> env;
 
-        EvalLetBinding() = default;
-        EvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env);
+        EvalLetBinding(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf, EvalPrimOp,
-                 EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg, EvalFun, EvalLet, EvalLetBinding>
-        eval;
+    using Alternative =
+        std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf,
+                     EvalPrimOp, EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg, EvalFun, EvalLet,
+                     EvalLetBinding>;
 
-    Evaluation() = default;
-    Evaluation(EvalConst &&eval);
-    Evaluation(EvalVar &&eval);
+    Alternative rule;
 
-    static Evaluation makeEvalPair(Value &&left, Value &&right);
-    static Evaluation makeEvalPairFst(Expression &&left, Value &&right);
-    static Evaluation makeEvalPairSnd(Expression &&left, Expression &&right);
-    static Evaluation makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse);
-    static Evaluation makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse);
-    static Evaluation makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
-    static Evaluation makeEvalPrimOp(Value &&left, Value &&right, BinOp op);
-    static Evaluation makeEvalPrimOpL(Expression &&left, Value &&right, BinOp op);
-    static Evaluation makeEvalPrimOpR(Expression &&left, Expression &&right, BinOp op);
-    static Evaluation makeEvalApp(Variable &&param, Expression &&body, Environment &&captured, Value &&arg);
-    static Evaluation makeEvalAppFun(Expression &&fun, Environment &&outside, Value &&arg);
-    static Evaluation makeEvalAppArg(Expression &&fun, Expression &&arg, Environment &&outside);
-    static Evaluation makeEvalFun(Variable &&param, Expression &&body, Environment &&env);
-    static Evaluation makeEvalLet(Variable &&var, Value &&val, Expression &&body, Environment &&env);
-    static Evaluation makeEvalLetBinding(Variable &&var, Expression &&pre, Expression &&body, Environment &&env);
+    explicit Rule(Alternative &&alternative);
+
+    static Rule makeEvalConst(Value &&val);
+    static Rule makeEvalVar(Variable &&var);
+    static Rule makeEvalPair(Value &&left, Value &&right);
+    static Rule makeEvalPairFst(Expression &&left, Value &&right);
+    static Rule makeEvalPairSnd(Expression &&left, Expression &&right);
+    static Rule makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse);
+    static Rule makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse);
+    static Rule makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    static Rule makeEvalPrimOp(Value &&left, Value &&right, BinOp op);
+    static Rule makeEvalPrimOpL(Expression &&left, Value &&right, BinOp op);
+    static Rule makeEvalPrimOpR(Expression &&left, Expression &&right, BinOp op);
+    static Rule makeEvalApp(Variable &&param, Expression &&body, Environment &&captured, Value &&arg);
+    static Rule makeEvalAppFun(Expression &&fun, Value &&arg);
+    static Rule makeEvalAppArg(Expression &&fun, Expression &&arg);
+    static Rule makeEvalFun(Variable &&param, Expression &&body);
+    static Rule makeEvalLet(Variable &&var, Value &&val, Expression &&body);
+    static Rule makeEvalLetBinding(Variable &&var, Expression &&pre, Expression &&body);
+};
+
+struct Evaluation
+{
+    Rule rule;
+    std::unique_ptr<Environment> env;
+
+    Evaluation(Rule &&rule, Environment &&env);
 };
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);

@@ -6,6 +6,8 @@
 
 %code requires {
 
+#include <optional>
+
 #include "picoml.h"
 
 }
@@ -27,31 +29,31 @@ yy::parser::symbol_type yylex();
 %precedence	ELSE MAPSTO
 %right		OP
 
-%parse-param { Evaluation &result }
+%parse-param { std::optional<Evaluation> &result }
 
-%type	<Evaluation>	input
-%type 	<Evaluation>	EvalConst
-%type 	<Evaluation>	EvalVar
-%type 	<Evaluation>	EvalPair
-%type 	<Evaluation>	EvalPairFst
-%type 	<Evaluation>	EvalPairSnd
-%type 	<Evaluation>	EvalIfTrue
-%type 	<Evaluation>	EvalIfFalse
-%type 	<Evaluation>	EvalIf
-%type 	<Evaluation>	EvalPrimOp
-%type 	<Evaluation>	EvalPrimOpL
-%type 	<Evaluation>	EvalPrimOpR
-%type	<Evaluation>	EvalApp
-%type	<Evaluation>	EvalAppFun
-%type	<Evaluation>	EvalAppArg
-%type	<Evaluation>	EvalFun
-%type	<Evaluation>	EvalLet
-%type	<Evaluation>	EvalLetBinding
+%type	<std::optional<Rule>>	rule
+%type 	<std::optional<Rule>>	EvalConst
+%type 	<std::optional<Rule>>	EvalVar
+%type 	<std::optional<Rule>>	EvalPair
+%type 	<std::optional<Rule>>	EvalPairFst
+%type 	<std::optional<Rule>>	EvalPairSnd
+%type 	<std::optional<Rule>>	EvalIfTrue
+%type 	<std::optional<Rule>>	EvalIfFalse
+%type 	<std::optional<Rule>>	EvalIf
+%type 	<std::optional<Rule>>	EvalPrimOp
+%type 	<std::optional<Rule>>	EvalPrimOpL
+%type 	<std::optional<Rule>>	EvalPrimOpR
+%type	<std::optional<Rule>>	EvalApp
+%type	<std::optional<Rule>>	EvalAppFun
+%type	<std::optional<Rule>>	EvalAppArg
+%type	<std::optional<Rule>>	EvalFun
+%type	<std::optional<Rule>>	EvalLet
+%type	<std::optional<Rule>>	EvalLetBinding
 
-%type	<Value>			value
-%type	<Expression>	expr
-%type	<Expression>	atom
-%type	<Expression>	app
+%type	<std::optional<Value>>			value
+%type	<std::optional<Expression>>	expr
+%type	<std::optional<Expression>>	atom
+%type	<std::optional<Expression>>	app
 %type	<Binding>		binding
 %type	<Bindings>		binding_list
 %type	<Environment>	env
@@ -71,110 +73,114 @@ yy::parser::symbol_type yylex();
 
 %%
 
-input 	: EvalConst 		{ result = $1; }
-		| EvalVar 			{ result = $1; }
-		| EvalPair			{ result = $1; }
-		| EvalPairFst 		{ result = $1; }
-		| EvalPairSnd 		{ result = $1; }
-		| EvalIfTrue 		{ result = $1; }
-		| EvalIfFalse 		{ result = $1; }
-		| EvalIf 			{ result = $1; }
-		| EvalPrimOp 		{ result = $1; }
-		| EvalPrimOpL 		{ result = $1; }
-		| EvalPrimOpR 		{ result = $1; }
-		| EvalApp 			{ result = $1; }
-		| EvalAppFun 		{ result = $1; }
-		| EvalAppArg 		{ result = $1; }
-		| EvalFun 			{ result = $1; }
-		| EvalLet 			{ result = $1; }
-		| EvalLetBinding	{ result = $1; }
+input	: EVAL '(' rule ',' env ')'
+			{ result = Evaluation($rule.value(), $env); }
+		;
+
+rule 	: EvalConst 		{ $$ = $1; }
+		| EvalVar 			{ $$ = $1; }
+		| EvalPair			{ $$ = $1; }
+		| EvalPairFst 		{ $$ = $1; }
+		| EvalPairSnd 		{ $$ = $1; }
+		| EvalIfTrue 		{ $$ = $1; }
+		| EvalIfFalse 		{ $$ = $1; }
+		| EvalIf 			{ $$ = $1; }
+		| EvalPrimOp 		{ $$ = $1; }
+		| EvalPrimOpL 		{ $$ = $1; }
+		| EvalPrimOpR 		{ $$ = $1; }
+		| EvalApp 			{ $$ = $1; }
+		| EvalAppFun 		{ $$ = $1; }
+		| EvalAppArg 		{ $$ = $1; }
+		| EvalFun 			{ $$ = $1; }
+		| EvalLet 			{ $$ = $1; }
+		| EvalLetBinding	{ $$ = $1; }
 		;
 
 EvalConst
-		: EVAL '(' INTEGER ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalConst($INTEGER)); }
-		| EVAL '(' TRUE ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalConst($TRUE)); }
-		| EVAL '(' FALSE ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalConst($FALSE)); }
-		| EVAL '(' '<' VARIABLE MAPSTO expr ',' env[captured] '>' ',' env[outside] ')'
-			{ $$ = Evaluation(Evaluation::EvalConst(Value::makeFunction($VARIABLE, $expr, $captured))); }
+		: INTEGER
+			{ $$ = Rule::makeEvalConst(Value($INTEGER)); }
+		| TRUE
+			{ $$ = Rule::makeEvalConst(Value($TRUE)); }
+		| FALSE
+			{ $$ = Rule::makeEvalConst(Value($FALSE)); }
+		| '<' VARIABLE MAPSTO expr ',' env[captured] '>'
+			{ $$ = Rule::makeEvalConst(Value::makeFunction($VARIABLE, $expr.value(), $captured)); }
 		;
 
-EvalVar	: EVAL '(' VARIABLE ',' env ')'
-			{ $$ = Evaluation(Evaluation::EvalVar($VARIABLE, $env)); }
+EvalVar	: VARIABLE
+			{ $$ = Rule::makeEvalVar($VARIABLE); }
 		;
 
 EvalPair
-		: EVAL '(' '(' VAL value[left] ',' VAL value[right] ')' ',' env ')'
-			{ $$ = Evaluation::makeEvalPair($left, $right); }
+		: '(' VAL value[left] ',' VAL value[right] ')'
+			{ $$ = Rule::makeEvalPair($left.value(), $right.value()); }
 		;
 
 EvalPairFst
-		: EVAL '(' '(' expr[left] ',' VAL value[right] ')' ',' env ')'
-			{ $$ = Evaluation::makeEvalPairFst($left, $right); }
+		: '(' expr[left] ',' VAL value[right] ')'
+			{ $$ = Rule::makeEvalPairFst($left.value(), $right.value()); }
 		;
 
 EvalPairSnd
-		: EVAL '(' '(' expr[left] ',' expr[right] ')' ',' env ')'
-			{ $$ = Evaluation::makeEvalPairSnd($left, $right); }
+		: '(' expr[left] ',' expr[right] ')'
+			{ $$ = Rule::makeEvalPairSnd($left.value(), $right.value()); }
 		;
 
 EvalIfTrue
-		: EVAL '(' IF VAL TRUE THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
-			{ $$ = Evaluation::makeEvalIfTrue($dotrue, $dofalse); }
+		: IF VAL TRUE THEN expr[dotrue] ELSE expr[dofalse]
+			{ $$ = Rule::makeEvalIfTrue($dotrue.value(), $dofalse.value()); }
 		;
 
 EvalIfFalse
-		: EVAL '(' IF VAL FALSE THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
-			{ $$ = Evaluation::makeEvalIfFalse($dotrue, $dofalse); }
+		: IF VAL FALSE THEN expr[dotrue] ELSE expr[dofalse]
+			{ $$ = Rule::makeEvalIfFalse($dotrue.value(), $dofalse.value()); }
 		;
 
 EvalIf
-		: EVAL '(' IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
-			{ $$ = Evaluation::makeEvalIf($pred, $dotrue, $dofalse); }
+		: IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
+			{ $$ = Rule::makeEvalIf($pred.value(), $dotrue.value(), $dofalse.value()); }
 		;
 
 EvalPrimOp
-		: EVAL '(' VAL value[left] OP VAL value[right] ',' env ')'
-			{ $$ = Evaluation::makeEvalPrimOp($left, $right, $OP); }
+		: VAL value[left] OP VAL value[right]
+			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $OP); }
 		;
 
 EvalPrimOpL
-		: EVAL '(' expr[left] OP VAL value[right] ',' env ')'
-			{ $$ = Evaluation::makeEvalPrimOpL($left, $right, $OP); }
+		: expr[left] OP VAL value[right]
+			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $OP); }
 		;
 
 EvalPrimOpR
-		: EVAL '(' expr[left] OP expr[right] ',' env ')'
-			{ $$ = Evaluation::makeEvalPrimOpR($left, $right, $OP); }
+		: expr[left] OP expr[right]
+			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $OP); }
 		;
 
-EvalApp : EVAL '(' VAL '<' VARIABLE MAPSTO expr[body] ',' env[captured] '>' VAL value ',' env[outside] ')'
-			{ $$ = Evaluation::makeEvalApp($VARIABLE, $body, $captured, $value); }
+EvalApp : VAL '<' VARIABLE MAPSTO expr[body] ',' env[captured] '>' VAL value
+			{ $$ = Rule::makeEvalApp($VARIABLE, $body.value(), $captured, $value.value()); }
 		;
 
 EvalAppFun
-		: EVAL '(' app[fun] VAL value ',' env[outside] ')'
-			{ $$ = Evaluation::makeEvalAppFun($fun, $outside, $value); }
+		: app[fun] VAL value
+			{ $$ = Rule::makeEvalAppFun($fun.value(), $value.value()); }
 		;
 
 EvalAppArg
-		: EVAL '(' app[fun] atom[arg] ',' env[outside] ')'
-			{ $$ = Evaluation::makeEvalAppArg($fun, $arg, $outside); }
+		: app[fun] atom[arg]
+			{ $$ = Rule::makeEvalAppArg($fun.value(), $arg.value()); }
 		;
 
-EvalFun	: EVAL '(' FUN VARIABLE MAPSTO expr ',' env ')'
-			{ $$ = Evaluation::makeEvalFun($VARIABLE, $expr, $env); }
+EvalFun	: FUN VARIABLE MAPSTO expr
+			{ $$ = Rule::makeEvalFun($VARIABLE, $expr.value()); }
 		;
 
-EvalLet : EVAL '(' LET VARIABLE EQUAL VAL value IN expr[body] ',' env ')'
-			{ $$ = Evaluation::makeEvalLet($VARIABLE, $value, $body, $env); }
+EvalLet : LET VARIABLE EQUAL VAL value IN expr[body]
+			{ $$ = Rule::makeEvalLet($VARIABLE, $value.value(), $body.value()); }
 		;
 
 EvalLetBinding
-		 : EVAL '(' LET VARIABLE EQUAL expr[pre] IN expr[body] ',' env ')'
-			{ $$ = Evaluation::makeEvalLetBinding($VARIABLE, $pre, $body, $env); }
+		 : LET VARIABLE EQUAL expr[pre] IN expr[body]
+			{ $$ = Rule::makeEvalLetBinding($VARIABLE, $pre.value(), $body.value()); }
 		;
 
 env		: '{' binding_list[bindings] '}'
@@ -182,7 +188,7 @@ env		: '{' binding_list[bindings] '}'
 		;
 
 binding : VARIABLE MAPSTO value
-			{ $$ = Binding($VARIABLE, $value); }
+			{ $$ = Binding($VARIABLE, $value.value()); }
 		;
 
 binding_list
@@ -200,9 +206,9 @@ value	: INTEGER
 		| FALSE
 			{ $$ = Value($FALSE); }
 		| '(' value[left] ',' value[right] ')'
-			{ $$ = Value::makePair($left, $right); }
+			{ $$ = Value::makePair($left.value(), $right.value()); }
 		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
-			{ $$ = Value::makeFunction($VARIABLE, $body, $env); }
+			{ $$ = Value::makeFunction($VARIABLE, $body.value(), $env); }
 		| '(' value ')'
 			{ $$ = $2; }
 		;
@@ -216,15 +222,15 @@ atom	: VARIABLE
 		| FALSE
 			{ $$ = Expression(Value($FALSE)); }
 		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
-			{ $$ = Expression(Value::makeFunction($VARIABLE, $body, $env)); }
+			{ $$ = Expression(Value::makeFunction($VARIABLE, $body.value(), $env)); }
 		| '(' expr[left] ',' expr[right] ')'
-			{ $$ = Expression::makePair($left, $right); }
+			{ $$ = Expression::makePair($left.value(), $right.value()); }
 		| '(' expr ')'
 			{ $$ = $2; }
 		;
 
 app		: app atom
-			{ $$ = Expression::makeApp($1, $2); }
+			{ $$ = Expression::makeApp($1.value(), $2.value()); }
 		| atom
 			{ $$ = $1; }
 		;
@@ -232,13 +238,13 @@ app		: app atom
 expr	: app
 			{ $$ = $1; }
 		| FUN VARIABLE MAPSTO expr[body]
-			{ $$ = Expression::makeFunction($VARIABLE, $body); }
+			{ $$ = Expression::makeFunction($VARIABLE, $body.value()); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
-			{ $$ = Expression::makeIf($pred, $dotrue, $dofalse); }
+			{ $$ = Expression::makeIf($pred.value(), $dotrue.value(), $dofalse.value()); }
 		| expr[left] OP expr[right]
-			{ $$ = Expression::makeBinary($left, $right, $OP); }
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $OP); }
 		| LET VARIABLE EQUAL expr[pre] IN expr[body]
-			{ $$ = Expression::makeLet($VARIABLE, $pre, $body); }
+			{ $$ = Expression::makeLet($VARIABLE, $pre.value(), $body.value()); }
 		;
 
 %%

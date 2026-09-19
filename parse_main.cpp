@@ -2,13 +2,17 @@
 #include "picoml.tab.h"
 
 #include <iostream>
+#include <optional>
 
 int main(void)
 {
-    Evaluation result;
+    std::optional<Evaluation> result;
     yy::parser parser(result);
-    int rc = parser.parse();
-    if (rc == 0)
-        std::cout << result << "\n";
-    return rc;
+    parser.parse();
+
+    if (!result)
+        return 1;
+
+    std::cout << result.value() << "\n";
+    return 0;
 };
