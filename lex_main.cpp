@@ -60,6 +60,8 @@ int main(void)
             std::cout << " " << token.value.as<Value>();
         else if (token.kind() == kind::S_VARIABLE)
             std::cout << " " << token.value.as<Variable>();
+        else if (token.kind() == kind::S_OP)
+            std::cout << " " << token.value.as<BinOp>();
         std::cout << "\n";
     };
 };

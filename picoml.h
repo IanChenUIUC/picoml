@@ -7,10 +7,25 @@
 #include <variant>
 #include <vector>
 
+struct BinOp;
 struct Value;
 struct Variable;
 struct Expression;
 struct Environment;
+
+struct BinOp
+{
+    enum Op
+    {
+        ADD,
+        SUB,
+        MUL,
+        DIV,
+    } op;
+
+    BinOp() = default;
+    BinOp(Op op);
+};
 
 struct Value
 {
@@ -50,12 +65,22 @@ struct Expression
                std::unique_ptr<Expression> dofalse);
     };
 
-    std::variant<Value, Variable, IfExpr> expr;
+    struct BinaryExpr
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        BinaryExpr(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, BinOp op);
+    };
+
+    std::variant<Value, Variable, IfExpr, BinaryExpr> expr;
 
     Expression() = default;
     Expression(Value &&val);
     Expression(Variable &&var);
     Expression(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    Expression(Expression &&left, Expression &&right, BinOp &&op);
 };
 
 struct Binding
@@ -100,6 +125,7 @@ struct Evaluation
     Evaluation(EvalConst &&eval);
 };
 
+std::ostream &operator<<(std::ostream &os, const BinOp &binop);
 std::ostream &operator<<(std::ostream &os, const Value &value);
 std::ostream &operator<<(std::ostream &os, const Variable &variable);
 std::ostream &operator<<(std::ostream &os, const Expression &expression);

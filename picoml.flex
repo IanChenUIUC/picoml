@@ -24,10 +24,10 @@
 "->"			{	return yy::parser::token::MAPSTO;	}
 "="				{	return yy::parser::token::EQUAL;	}
 
-"+"				{	return yy::parser::token::OP;		}
-"-"				{	return yy::parser::token::OP;		}
-"*"				{	return yy::parser::token::OP;		}
-"/"				{	return yy::parser::token::OP;		}
+"+"				{	return yy::parser::make_OP(BinOp::ADD);	}
+"-"				{	return yy::parser::make_OP(BinOp::SUB);	}
+"*"				{	return yy::parser::make_OP(BinOp::MUL);	}
+"/"				{	return yy::parser::make_OP(BinOp::DIV);	}
 
 [0-9]+			{
 					return yy::parser::make_CONST(strtod(yytext, NULL));

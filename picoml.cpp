@@ -3,6 +3,10 @@
 #include <memory>
 #include <type_traits>
 
+BinOp::BinOp(BinOp::Op op) : op(op)
+{
+}
+
 Value::Function::Function(std::unique_ptr<Variable> param, std::unique_ptr<Expression> body,
                           std::unique_ptr<Environment> env)
     : param(std::move(param)), body(std::move(body)), env(std::move(env))
@@ -12,6 +16,11 @@ Value::Function::Function(std::unique_ptr<Variable> param, std::unique_ptr<Expre
 Expression::IfExpr::IfExpr(std::unique_ptr<Expression> pred, std::unique_ptr<Expression> dotrue,
                            std::unique_ptr<Expression> dofalse)
     : pred(std::move(pred)), dotrue(std::move(dotrue)), dofalse(std::move(dofalse))
+{
+}
+
+Expression::BinaryExpr::BinaryExpr(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right, BinOp op)
+    : left(std::move(left)), right(std::move(right)), op(std::move(op))
 {
 }
 
@@ -26,6 +35,11 @@ Variable::Variable(std::string &&identifier) : identifier(std::move(identifier))
 
 Expression::Expression(Value &&val) : expr(std::move(val)) {};
 Expression::Expression(Variable &&var) : expr(std::move(var)) {};
+Expression::Expression(Expression &&left, Expression &&right, BinOp &&op)
+    : expr(BinaryExpr(std::make_unique<Expression>(std::move(left)), (std::make_unique<Expression>(std::move(right))),
+                      (std::move(op))))
+{
+}
 
 Binding::Binding(Variable &&var, Value &&val) : var(std::move(var)), val(std::move(val))
 {
@@ -54,6 +68,22 @@ Evaluation::EvalConst::EvalConst(Value &&val) : val(std::move(val))
 }
 
 template <class> inline constexpr bool always_false_v = false;
+
+std::ostream &operator<<(std::ostream &os, const BinOp &binop)
+{
+    switch (binop.op)
+    {
+    case BinOp::ADD:
+        return os << "+";
+    case BinOp::SUB:
+        return os << "-";
+    case BinOp::MUL:
+        return os << "*";
+    case BinOp::DIV:
+        return os << "/";
+    }
+    return os;
+}
 
 std::ostream &operator<<(std::ostream &os, const Value &value)
 {
@@ -85,6 +115,8 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << arg;
             else if constexpr (std::is_same_v<T, Expression::IfExpr>)
                 os << "if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse;
+            else if constexpr (std::is_same_v<T, Expression::BinaryExpr>)
+                os << "(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },

@@ -35,7 +35,7 @@ yy::parser::symbol_type yylex();
 
 %token	<Variable> 	VARIABLE
 %token	<Value> 	CONST
-%token	OP // TODO: give this a type and yylval
+%token	<BinOp>		OP
 
 %token	EVAL VAL
 %token 	IF THEN ELSE TRUE FALSE
@@ -82,6 +82,8 @@ expr	: value
 			{ $$ = Expression($value); }
 		| VARIABLE
 			{ $$ = Expression($VARIABLE); }
+		| expr[left] OP expr[right]
+			{ $$ = Expression($left, $right, $OP); }
 		;
 
 %%
