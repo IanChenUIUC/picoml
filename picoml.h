@@ -344,6 +344,7 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression);
 std::ostream &operator<<(std::ostream &os, const Binding &binding);
 std::ostream &operator<<(std::ostream &os, const Bindings &bindings);
 std::ostream &operator<<(std::ostream &os, const Environment &env);
+std::ostream &operator<<(std::ostream &os, const Rule &rule);
 std::ostream &operator<<(std::ostream &os, const Evaluation &eval);
 
 #endif

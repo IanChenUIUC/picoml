@@ -5,7 +5,7 @@ BISONFLAGS ?= -Wall -Wcounterexamples -v
 FLEX       ?= flex
 
 PROGS     := lexer parser
-COMMON    := lex.yy.cpp picoml.cpp
+COMMON    := lex.yy.cpp picoml.cpp print.cpp
 GENERATED := picoml.tab.cpp picoml.tab.h picoml.output lex.yy.cpp
 
 all: $(PROGS)
