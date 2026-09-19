@@ -23,6 +23,9 @@ yy::parser::symbol_type yylex();
 %define api.value.type variant
 %define api.value.automove
 
+%precedence	ELSE
+%right		OP
+
 %parse-param { Evaluation &result }
 
 %type	<Evaluation>	input
@@ -34,6 +37,9 @@ yy::parser::symbol_type yylex();
 %type 	<Evaluation>	EvalIfTrue
 %type 	<Evaluation>	EvalIfFalse
 %type 	<Evaluation>	EvalIf
+%type 	<Evaluation>	EvalPrimOp
+%type 	<Evaluation>	EvalPrimOpL
+%type 	<Evaluation>	EvalPrimOpR
 
 %type	<Value>			value
 %type	<Expression>	expr
@@ -64,6 +70,9 @@ input 	: EvalConst 	{ result = $1; }
 		| EvalIfTrue 	{ result = $1; }
 		| EvalIfFalse 	{ result = $1; }
 		| EvalIf 		{ result = $1; }
+		| EvalPrimOp 	{ result = $1; }
+		| EvalPrimOpL 	{ result = $1; }
+		| EvalPrimOpR 	{ result = $1; }
 		;
 
 EvalConst
@@ -103,9 +112,25 @@ EvalIfFalse
 		: EVAL '(' IF VAL FALSE THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
 			{ $$ = Evaluation::makeEvalIfFalse($dotrue, $dofalse); }
 		;
+
 EvalIf
 		: EVAL '(' IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse] ',' env ')'
 			{ $$ = Evaluation::makeEvalIf($pred, $dotrue, $dofalse); }
+		;
+
+EvalPrimOp
+		: EVAL '(' VAL value[left] OP VAL value[right] ',' env ')'
+			{ $$ = Evaluation::makeEvalPrimOp($left, $right, $OP); }
+		;
+
+EvalPrimOpL
+		: EVAL '(' expr[left] OP VAL value[right] ',' env ')'
+			{ $$ = Evaluation::makeEvalPrimOpL($left, $right, $OP); }
+		;
+
+EvalPrimOpR
+		: EVAL '(' expr[left] OP expr[right] ',' env ')'
+			{ $$ = Evaluation::makeEvalPrimOpR($left, $right, $OP); }
 		;
 
 env		: '{' binding_list[bindings] '}'
@@ -148,6 +173,8 @@ expr	: INTEGER
 			{ $$ = Expression::makePair($left, $right); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred, $dotrue, $dofalse); }
+		| expr[left] OP expr[right]
+			{ $$ = Expression::makeBinary($left, $right, $OP); }
 		| '(' expr ')'
 			{ $$ = $2; }
 		;

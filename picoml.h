@@ -202,7 +202,39 @@ struct Evaluation
         EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
-    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf> eval;
+    struct EvalPrimOp
+    {
+        std::unique_ptr<Value> left;
+        std::unique_ptr<Value> right;
+        BinOp op;
+
+        EvalPrimOp() = default;
+        EvalPrimOp(Value &&left, Value &&right, BinOp op);
+    };
+
+    struct EvalPrimOpL
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Value> right;
+        BinOp op;
+
+        EvalPrimOpL() = default;
+        EvalPrimOpL(Expression &&left, Value &&right, BinOp op);
+    };
+
+    struct EvalPrimOpR
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        EvalPrimOpR() = default;
+        EvalPrimOpR(Expression &&left, Expression &&right, BinOp op);
+    };
+
+    std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf,
+                 EvalPrimOp, EvalPrimOpL, EvalPrimOpR>
+        eval;
 
     Evaluation() = default;
     Evaluation(EvalConst &&eval);
@@ -214,6 +246,9 @@ struct Evaluation
     static Evaluation makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse);
     static Evaluation makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse);
     static Evaluation makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    static Evaluation makeEvalPrimOp(Value &&left, Value &&right, BinOp op);
+    static Evaluation makeEvalPrimOpL(Expression &&left, Value &&right, BinOp op);
+    static Evaluation makeEvalPrimOpR(Expression &&left, Expression &&right, BinOp op);
 };
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);

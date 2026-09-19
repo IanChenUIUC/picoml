@@ -136,6 +136,24 @@ Evaluation::EvalIf::EvalIf(Expression &&pred, Expression &&dotrue, Expression &&
 {
 }
 
+Evaluation::EvalPrimOp::EvalPrimOp(Value &&left, Value &&right, BinOp op)
+    : left(std::make_unique<Value>(std::move(left))), right(std::make_unique<Value>(std::move(right))),
+      op(std::move(op))
+{
+}
+
+Evaluation::EvalPrimOpL::EvalPrimOpL(Expression &&left, Value &&right, BinOp op)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Value>(std::move(right))),
+      op(std::move(op))
+{
+}
+
+Evaluation::EvalPrimOpR::EvalPrimOpR(Expression &&left, Expression &&right, BinOp op)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))),
+      op(std::move(op))
+{
+}
+
 Evaluation::Evaluation(EvalConst &&eval) : eval(std::move(eval))
 {
 }
@@ -183,6 +201,27 @@ Evaluation Evaluation::makeEvalIf(Expression &&pred, Expression &&dotrue, Expres
 {
     Evaluation evaluation;
     evaluation.eval = EvalIf(std::move(pred), std::move(dotrue), std::move(dofalse));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalPrimOp(Value &&left, Value &&right, BinOp op)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPrimOp(std::move(left), std::move(right), std::move(op));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalPrimOpL(Expression &&left, Value &&right, BinOp op)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPrimOpL(std::move(left), std::move(right), std::move(op));
+    return evaluation;
+}
+
+Evaluation Evaluation::makeEvalPrimOpR(Expression &&left, Expression &&right, BinOp op)
+{
+    Evaluation evaluation;
+    evaluation.eval = EvalPrimOpR(std::move(left), std::move(right), std::move(op));
     return evaluation;
 }
 
@@ -292,6 +331,12 @@ std::ostream &operator<<(std::ostream &os, const Evaluation &eval)
                 os << "EvalIfFalse(if Val false then " << *arg.dotrue << " else " << *arg.dofalse << ")";
             else if constexpr (std::is_same_v<T, Evaluation::EvalIf>)
                 os << "EvalIf(if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPrimOp>)
+                os << "EvalPrimOp(Val " << *arg.left << " " << arg.op << " Val " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPrimOpL>)
+                os << "EvalPrimOpL(" << *arg.left << " " << arg.op << " Val " << *arg.right << ")";
+            else if constexpr (std::is_same_v<T, Evaluation::EvalPrimOpR>)
+                os << "EvalPrimOpR(" << *arg.left << " " << arg.op << " " << *arg.right << ")";
             else
                 static_assert(always_false_v<T>, "non-exhaustive visitor");
         },
