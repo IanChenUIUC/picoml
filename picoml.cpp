@@ -35,6 +35,11 @@ Variable::Variable(std::string &&identifier) : identifier(std::move(identifier))
 {
 }
 
+bool operator<(const Variable &lhs, const Variable &rhs)
+{
+    return lhs.identifier < rhs.identifier;
+}
+
 Expression::IfExpr::IfExpr(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
     : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
       dofalse(std::make_unique<Expression>(std::move(dofalse)))
@@ -42,8 +47,7 @@ Expression::IfExpr::IfExpr(Expression &&pred, Expression &&dotrue, Expression &&
 }
 
 Expression::BinaryExpr::BinaryExpr(Expression &&left, Expression &&right, BinOp op)
-    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))),
-      op(op)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 
@@ -109,12 +113,12 @@ Binding::Binding(Variable &&var, Value &&val)
 
 Bindings::Bindings(Binding &&binding)
 {
-    this->bindings.emplace_back(std::move(binding));
+    this->bindings.insert_or_assign(*std::move(binding.var), std::move(binding.val));
 }
 
 Bindings::Bindings(Bindings &&bindings, Binding &&binding) : bindings(std::move(bindings.bindings))
 {
-    this->bindings.emplace_back(std::move(binding));
+    this->bindings.insert_or_assign(*std::move(binding.var), std::move(binding.val));
 }
 
 Environment::Environment(Bindings &&bindings) : bindings(std::move(bindings))
@@ -171,8 +175,7 @@ Rule::EvalPrimOpL::EvalPrimOpL(Expression &&left, Value &&right, BinOp op)
 }
 
 Rule::EvalPrimOpR::EvalPrimOpR(Expression &&left, Expression &&right, BinOp op)
-    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))),
-      op(op)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 

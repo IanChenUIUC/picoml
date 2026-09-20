@@ -4,7 +4,7 @@ BISON      ?= bison
 BISONFLAGS ?= -Wall -Wcounterexamples -v
 FLEX       ?= flex
 
-PROGS     := lexer parser
+PROGS     := lexer parser main
 COMMON    := lex.yy.cpp picoml.cpp print.cpp
 GENERATED := picoml.tab.cpp picoml.tab.h picoml.output lex.yy.cpp
 
@@ -15,6 +15,9 @@ lexer: lex_main.cpp $(COMMON) picoml.h picoml.tab.h
 
 parser: parse_main.cpp picoml.tab.cpp $(COMMON) picoml.h picoml.tab.h
 	$(CXX) $(CXXFLAGS) -o $@ parse_main.cpp picoml.tab.cpp $(COMMON) $(LDLIBS)
+
+main: main.cpp interpreter.cpp picoml.tab.cpp $(COMMON) picoml.h picoml.tab.h interpreter.h
+	$(CXX) $(CXXFLAGS) -o $@ main.cpp interpreter.cpp picoml.tab.cpp $(COMMON) $(LDLIBS)
 
 picoml.tab.cpp picoml.tab.h picoml.output &: picoml.y
 	$(BISON) $(BISONFLAGS) -o picoml.tab.cpp --header=picoml.tab.h picoml.y

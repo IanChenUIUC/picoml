@@ -1,6 +1,7 @@
 #ifndef __PICOML_H
 #define __PICOML_H
 
+#include <map>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -63,6 +64,8 @@ struct Variable
     Variable() = default;
     Variable(std::string &&identifier);
 };
+
+bool operator<(const Variable &lhs, const Variable &rhs);
 
 struct Expression
 {
@@ -142,7 +145,7 @@ struct Binding
 
 struct Bindings
 {
-    std::vector<Binding> bindings;
+    std::map<Variable, std::unique_ptr<Value>> bindings;
 
     Bindings() = default;
     Bindings(Binding &&binding);
@@ -301,10 +304,9 @@ struct Rule
         EvalLetBinding(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    using Alternative =
-        std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse, EvalIf,
-                     EvalPrimOp, EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg, EvalFun, EvalLet,
-                     EvalLetBinding>;
+    using Alternative = std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse,
+                                     EvalIf, EvalPrimOp, EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg,
+                                     EvalFun, EvalLet, EvalLetBinding>;
 
     Alternative rule;
 
@@ -341,7 +343,6 @@ std::ostream &operator<<(std::ostream &os, const BinOp &binop);
 std::ostream &operator<<(std::ostream &os, const Value &value);
 std::ostream &operator<<(std::ostream &os, const Variable &variable);
 std::ostream &operator<<(std::ostream &os, const Expression &expression);
-std::ostream &operator<<(std::ostream &os, const Binding &binding);
 std::ostream &operator<<(std::ostream &os, const Bindings &bindings);
 std::ostream &operator<<(std::ostream &os, const Environment &env);
 std::ostream &operator<<(std::ostream &os, const Rule &rule);

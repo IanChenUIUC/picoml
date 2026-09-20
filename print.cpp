@@ -5,8 +5,6 @@
 namespace
 {
 
-template <class> inline constexpr bool always_false_v = false;
-
 bool isCompound(const Expression &expression)
 {
     return std::visit(
@@ -20,7 +18,7 @@ bool isCompound(const Expression &expression)
                                std::is_same_v<T, Expression::LetExpr>)
                 return true;
             else
-                static_assert(always_false_v<T>, "non-exhaustive visitor");
+                static_assert(false, "non-exhaustive visitor");
         },
         expression.expr);
 }
@@ -69,7 +67,7 @@ std::ostream &operator<<(std::ostream &os, const Value &value)
             else if constexpr (std::is_same_v<T, Value::Pair>)
                 os << "(" << *arg.left << ", " << *arg.right << ")";
             else
-                static_assert(always_false_v<T>, "non-exhaustive visitor");
+                static_assert(false, "non-exhaustive visitor");
         },
         value.val);
     return os;
@@ -100,25 +98,22 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
             else if constexpr (std::is_same_v<T, Expression::IfExpr>)
                 os << "if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse;
             else
-                static_assert(always_false_v<T>, "non-exhaustive visitor");
+                static_assert(false, "non-exhaustive visitor");
         },
         expression.expr);
     return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const Binding &binding)
-{
-    return os << *binding.var << " -> " << *binding.val;
-}
-
 std::ostream &operator<<(std::ostream &os, const Bindings &bindings)
 {
     os << "{";
-    for (size_t i = 0; i < bindings.bindings.size(); i++)
+    bool first = true;
+    for (const auto &[var, val] : bindings.bindings)
     {
-        if (i > 0)
+        if (!first)
             os << ", ";
-        os << bindings.bindings[i];
+        first = false;
+        os << var << " -> " << *val;
     }
     return os << "}";
 }
@@ -168,7 +163,7 @@ std::ostream &operator<<(std::ostream &os, const Rule &rule)
             else if constexpr (std::is_same_v<T, Rule::EvalLetBinding>)
                 os << "let " << *arg.var << " = " << Paren{*arg.pre} << " in " << *arg.body;
             else
-                static_assert(always_false_v<T>, "non-exhaustive visitor");
+                static_assert(false, "non-exhaustive visitor");
         },
         rule.rule);
     return os;
