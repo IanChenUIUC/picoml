@@ -55,8 +55,7 @@ The parser and lexer can also be run independently, if desired.
 ### Examples
 
 The main language constructs are shown in the `examples/` directory.
-Though `let rec` is not implemented in this grammar, recursion can be achieved with some magical tricks.
-This is demonstrated in `examples/25-eval_fact.ml`.
+Though `let rec` is not implemented in this grammar, recursion can still be achieved; the simplest is by passing the function as its own argument (see `examples/25-eval_fact.ml`).
 
 ## Evaluation rules
 
