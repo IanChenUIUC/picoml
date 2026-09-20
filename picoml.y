@@ -27,7 +27,8 @@ yy::parser::symbol_type yylex();
 
 %precedence	IN
 %precedence	ELSE MAPSTO
-%right		OP
+%left		ADDOP MINUS
+%left		MULOP
 
 %parse-param { std::optional<Evaluation> &result }
 
@@ -59,7 +60,7 @@ yy::parser::symbol_type yylex();
 %type	<Environment>	env
 
 %token	<Variable> 		VARIABLE
-%token	<BinOp>			OP
+%token	<BinOp>			ADDOP MULOP MINUS
 
 %token	<int> 			INTEGER
 %token	<bool> 			TRUE
@@ -99,6 +100,8 @@ rule 	: EvalConst 		{ $$ = $1; }
 EvalConst
 		: INTEGER
 			{ $$ = Rule::makeEvalConst(Value($INTEGER)); }
+		| MINUS INTEGER
+			{ $$ = Rule::makeEvalConst(Value(-$INTEGER)); }
 		| TRUE
 			{ $$ = Rule::makeEvalConst(Value($TRUE)); }
 		| FALSE
@@ -142,18 +145,30 @@ EvalIf
 		;
 
 EvalPrimOp
-		: VAL value[left] OP VAL value[right]
-			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $OP); }
+		: VAL value[left] ADDOP[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
+		| VAL value[left] MULOP[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
+		| VAL value[left] MINUS[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
 		;
 
 EvalPrimOpL
-		: expr[left] OP VAL value[right]
-			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $OP); }
+		: expr[left] ADDOP[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
+		| expr[left] MULOP[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
+		| expr[left] MINUS[op] VAL value[right]
+			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
 		;
 
 EvalPrimOpR
-		: expr[left] OP expr[right]
-			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $OP); }
+		: expr[left] ADDOP[op] expr[right]
+			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
+		| expr[left] MULOP[op] expr[right]
+			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
+		| expr[left] MINUS[op] expr[right]
+			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
 		;
 
 EvalApp : VAL '<' VARIABLE MAPSTO expr[body] ',' env[captured] '>' VAL value
@@ -201,6 +216,8 @@ binding_list
 
 value	: INTEGER
 			{ $$ = Value($INTEGER); }
+		| MINUS INTEGER
+			{ $$ = Value(-$INTEGER); }
 		| TRUE
 			{ $$ = Value($TRUE); }
 		| FALSE
@@ -241,8 +258,12 @@ expr	: app
 			{ $$ = Expression::makeFunction($VARIABLE, $body.value()); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred.value(), $dotrue.value(), $dofalse.value()); }
-		| expr[left] OP expr[right]
-			{ $$ = Expression::makeBinary($left.value(), $right.value(), $OP); }
+		| expr[left] ADDOP[op] expr[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
+		| expr[left] MULOP[op] expr[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
+		| expr[left] MINUS[op] expr[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
 		| LET VARIABLE EQUAL expr[pre] IN expr[body]
 			{ $$ = Expression::makeLet($VARIABLE, $pre.value(), $body.value()); }
 		;

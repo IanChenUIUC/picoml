@@ -126,7 +126,16 @@ int main(void)
 
     std::string line;
     while (std::cout << ">>> " && std::getline(std::cin, line))
-        interpret(line);
+    {
+        try
+        {
+            interpret(line);
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error: " << e.what() << std::endl;
+        }
+    }
 
     std::cout << "\n";
     return 0;

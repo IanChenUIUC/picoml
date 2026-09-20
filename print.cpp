@@ -23,10 +23,7 @@ bool isCompound(const Expression &expression)
         expression.expr);
 }
 
-struct Paren
-{
-    const Expression &expression;
-};
+} // namespace
 
 std::ostream &operator<<(std::ostream &os, Paren paren)
 {
@@ -34,8 +31,6 @@ std::ostream &operator<<(std::ostream &os, Paren paren)
         return os << paren.expression;
     return os << "(" << paren.expression << ")";
 }
-
-} // namespace
 
 std::ostream &operator<<(std::ostream &os, const BinOp &binop)
 {

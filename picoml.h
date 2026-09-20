@@ -339,6 +339,12 @@ struct Evaluation
     Evaluation(Rule &&rule, Environment &&env);
 };
 
+struct Paren
+{
+    const Expression &expression;
+};
+
+std::ostream &operator<<(std::ostream &os, Paren paren);
 std::ostream &operator<<(std::ostream &os, const BinOp &binop);
 std::ostream &operator<<(std::ostream &os, const Value &value);
 std::ostream &operator<<(std::ostream &os, const Variable &variable);

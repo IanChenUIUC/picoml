@@ -77,7 +77,7 @@ std::string Hole::before() const
             else if constexpr (std::is_same_v<T, PrimOpL>)
                 return "";
             else if constexpr (std::is_same_v<T, PrimOpR>)
-                return "";
+                return to_string(Paren{*h.left}) + " " + to_string(h.op) + " ";
             else if constexpr (std::is_same_v<T, If>)
                 return "";
             else if constexpr (std::is_same_v<T, AppFun>)
@@ -102,7 +102,7 @@ std::string Hole::after() const
             else if constexpr (std::is_same_v<T, PairRight>)
                 return ")";
             else if constexpr (std::is_same_v<T, PrimOpL>)
-                return "";
+                return " " + to_string(h.op) + " Val " + to_string(*h.right);
             else if constexpr (std::is_same_v<T, PrimOpR>)
                 return "";
             else if constexpr (std::is_same_v<T, If>)
@@ -129,9 +129,9 @@ std::string Hole::cursor() const
             else if constexpr (std::is_same_v<T, PairRight>)
                 return to_string(*h.right);
             else if constexpr (std::is_same_v<T, PrimOpL>)
-                return "";
+                return to_string(*h.left);
             else if constexpr (std::is_same_v<T, PrimOpR>)
-                return "";
+                return to_string(*h.right);
             else if constexpr (std::is_same_v<T, If>)
                 return "";
             else if constexpr (std::is_same_v<T, AppFun>)
@@ -183,17 +183,38 @@ AppliedRule Applier::operator()(Rule::EvalIf &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
 {
-    throw std::runtime_error("Not implemented");
+    const int *left = std::get_if<int>(&rule.left->val);
+    const int *right = std::get_if<int>(&rule.right->val);
+    if (!left || !right)
+        throw std::runtime_error("expected integers, got " + to_string(*rule.left) + " and " + to_string(*rule.right));
+
+    switch (rule.op.op)
+    {
+    case BinOp::ADD:
+        return AppliedRule(Atom(Value(*left + *right)));
+    case BinOp::SUB:
+        return AppliedRule(Atom(Value(*left - *right)));
+    case BinOp::MUL:
+        return AppliedRule(Atom(Value(*left * *right)));
+    case BinOp::DIV:
+        if (*right == 0)
+            throw std::runtime_error("division by zero: " + to_string(*rule.left) + " / " + to_string(*rule.right));
+        return AppliedRule(Atom(Value(*left / *right)));
+        break;
+    }
 }
+
 AppliedRule Applier::operator()(Rule::EvalPrimOpL &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::PrimOpL(std::move(*rule.left), std::move(*rule.right), rule.op)), std::move(env));
 }
+
 AppliedRule Applier::operator()(Rule::EvalPrimOpR &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::PrimOpR(std::move(*rule.left), std::move(*rule.right), rule.op)), std::move(env));
 }
 AppliedRule Applier::operator()(Rule::EvalApp &rule)
 {

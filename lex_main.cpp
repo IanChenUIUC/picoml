@@ -33,12 +33,11 @@ std::string token_to_string(kind::symbol_kind_type token)
         return "<fun>";
     case kind::S_MAPSTO:
         return "<mapsto>";
-    case kind::S_OP:
+    case kind::S_ADDOP:
+    case kind::S_MULOP:
         return "<op>";
     case kind::S_INTEGER:
-        return "<const>";
     case kind::S_TRUE:
-        return "<const>";
     case kind::S_FALSE:
         return "<const>";
     case kind::S_ERROR:
@@ -62,7 +61,7 @@ int main(void)
             std::cout << " " << std::boolalpha << token.value.as<bool>();
         else if (token.kind() == kind::S_VARIABLE)
             std::cout << " " << token.value.as<Variable>();
-        else if (token.kind() == kind::S_OP)
+        else if (token.kind() == kind::S_ADDOP || token.kind() == kind::S_MULOP)
             std::cout << " " << token.value.as<BinOp>();
         std::cout << "\n";
     };
