@@ -270,6 +270,5 @@ expr	: app
 
 %%
 
-void yy::parser::error(const std::string &msg) {
-	std::cerr << msg << std::endl;
+void yy::parser::error(const std::string &) {
 }

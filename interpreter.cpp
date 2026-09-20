@@ -79,7 +79,7 @@ std::string Hole::before() const
             else if constexpr (std::is_same_v<T, PrimOpR>)
                 return to_string(Paren{*h.left}) + " " + to_string(h.op) + " ";
             else if constexpr (std::is_same_v<T, If>)
-                return "";
+                return "if ";
             else if constexpr (std::is_same_v<T, AppFun>)
                 return "";
             else if constexpr (std::is_same_v<T, AppArg>)
@@ -106,7 +106,7 @@ std::string Hole::after() const
             else if constexpr (std::is_same_v<T, PrimOpR>)
                 return "";
             else if constexpr (std::is_same_v<T, If>)
-                return "";
+                return " then " + to_string(*h.dotrue) + " else " + to_string(*h.dofalse);
             else if constexpr (std::is_same_v<T, AppFun>)
                 return "";
             else if constexpr (std::is_same_v<T, AppArg>)
@@ -133,7 +133,7 @@ std::string Hole::cursor() const
             else if constexpr (std::is_same_v<T, PrimOpR>)
                 return to_string(*h.right);
             else if constexpr (std::is_same_v<T, If>)
-                return "";
+                return to_string(*h.pred);
             else if constexpr (std::is_same_v<T, AppFun>)
                 return "";
             else if constexpr (std::is_same_v<T, AppArg>)
@@ -153,7 +153,10 @@ AppliedRule Applier::operator()(Rule::EvalConst &rule)
 
 AppliedRule Applier::operator()(Rule::EvalVar &rule)
 {
-    throw std::runtime_error("Not implemented");
+    auto iter = env.bindings.bindings.find(*rule.var);
+    if (iter == env.bindings.bindings.end())
+        throw std::runtime_error("unbound variable: " + to_string(*rule.var));
+    return AppliedRule(Atom(std::move(*iter->second)));
 }
 
 AppliedRule Applier::operator()(Rule::EvalPair &rule)
@@ -173,15 +176,18 @@ AppliedRule Applier::operator()(Rule::EvalPairSnd &rule)
 
 AppliedRule Applier::operator()(Rule::EvalIfTrue &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Rewrite(std::move(*rule.dotrue)), std::move(env));
 }
+
 AppliedRule Applier::operator()(Rule::EvalIfFalse &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Rewrite(std::move(*rule.dofalse)), std::move(env));
 }
+
 AppliedRule Applier::operator()(Rule::EvalIf &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::If(std::move(*rule.pred), std::move(*rule.dotrue), std::move(*rule.dofalse))),
+                       std::move(env));
 }
 
 AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
@@ -216,26 +222,32 @@ AppliedRule Applier::operator()(Rule::EvalPrimOpR &rule)
 {
     return AppliedRule(Hole(Hole::PrimOpR(std::move(*rule.left), std::move(*rule.right), rule.op)), std::move(env));
 }
+
 AppliedRule Applier::operator()(Rule::EvalApp &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalAppFun &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalAppArg &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalFun &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalLet &rule)
 {
     throw std::runtime_error("Not implemented");
 }
+
 AppliedRule Applier::operator()(Rule::EvalLetBinding &rule)
 {
     throw std::runtime_error("Not implemented");
