@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <variant>
 
@@ -62,10 +63,7 @@ void interpret(const std::string &expr)
 {
     std::optional<Evaluation> initial = parse(expr);
     if (!initial)
-    {
-        std::cout << "Error could not parse: '" << expr << ' ' << std::endl;
-        return;
-    }
+        throw std::runtime_error("could not parse '" + expr + "'");
 
     std::string cursor = to_string(initial->rule);
     std::string env = to_string(*initial->env);
@@ -76,10 +74,7 @@ void interpret(const std::string &expr)
         std::string line = "Eval(" + cursor + ", " + env + ")";
         std::optional<Evaluation> eval = parse(line);
         if (!eval)
-        {
-            std::cout << "Error could not parse: '" << line << ' ' << std::endl;
-            return;
-        }
+            throw std::runtime_error("stuck, no rule applies to '" + line + "'");
 
         std::string s = line;
         for (std::size_t i = context.size(); i-- > 1;)

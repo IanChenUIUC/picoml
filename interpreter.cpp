@@ -83,7 +83,7 @@ std::string Hole::before() const
             else if constexpr (std::is_same_v<T, AppFun>)
                 return "";
             else if constexpr (std::is_same_v<T, AppArg>)
-                return "";
+                return to_string(Paren{*h.fun}) + " ";
             else if constexpr (std::is_same_v<T, LetBindings>)
                 return "let " + to_string(*h.var) + " = ";
             else
@@ -108,7 +108,7 @@ std::string Hole::after() const
             else if constexpr (std::is_same_v<T, If>)
                 return " then " + to_string(*h.dotrue) + " else " + to_string(*h.dofalse);
             else if constexpr (std::is_same_v<T, AppFun>)
-                return "";
+                return " Val " + to_string(*h.arg);
             else if constexpr (std::is_same_v<T, AppArg>)
                 return "";
             else if constexpr (std::is_same_v<T, LetBindings>)
@@ -135,9 +135,9 @@ std::string Hole::cursor() const
             else if constexpr (std::is_same_v<T, If>)
                 return to_string(*h.pred);
             else if constexpr (std::is_same_v<T, AppFun>)
-                return "";
+                return to_string(*h.fun);
             else if constexpr (std::is_same_v<T, AppArg>)
-                return "";
+                return to_string(*h.arg);
             else if constexpr (std::is_same_v<T, LetBindings>)
                 return to_string(*h.pre);
             else
@@ -209,8 +209,8 @@ AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
         if (*right == 0)
             throw std::runtime_error("division by zero: " + to_string(*rule.left) + " / " + to_string(*rule.right));
         return AppliedRule(Atom(Value(*left / *right)));
-        break;
     }
+    throw std::runtime_error("unknown operator");
 }
 
 AppliedRule Applier::operator()(Rule::EvalPrimOpL &rule)
@@ -225,22 +225,23 @@ AppliedRule Applier::operator()(Rule::EvalPrimOpR &rule)
 
 AppliedRule Applier::operator()(Rule::EvalApp &rule)
 {
-    throw std::runtime_error("Not implemented");
+    rule.captured->Add(std::move(*rule.param), std::move(*rule.arg));
+    return AppliedRule(Rewrite(std::move(*rule.body)), std::move(*rule.captured));
 }
 
 AppliedRule Applier::operator()(Rule::EvalAppFun &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::AppFun(std::move(*rule.fun), std::move(*rule.arg))), std::move(env));
 }
 
 AppliedRule Applier::operator()(Rule::EvalAppArg &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::AppArg(std::move(*rule.fun), std::move(*rule.arg))), std::move(env));
 }
 
 AppliedRule Applier::operator()(Rule::EvalFun &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Atom(Value::makeFunction(std::move(*rule.param), std::move(*rule.body), std::move(env))));
 }
 
 AppliedRule Applier::operator()(Rule::EvalLet &rule)
