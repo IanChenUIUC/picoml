@@ -35,24 +35,6 @@ std::optional<Evaluation> parse(const std::string &line)
 
 } // namespace
 
-// EvalConst:       returns Atom(Value), {}
-// EvalVar:         returns Atom(Value), {}
-// EvalPair:        returns Atom(Value), {}
-// EvalPairFst:     returns Hole::PairLeft(Expression, Value), {env}
-// EvalPairSnd:     returns Hole::PairRight(Expression, Expression), {env}
-// EvalPrimOp:      returns Atom(Value), {}
-// EvalPrimOpL:     returns Hole::PrimOpL(Expression, BinOp, Value), {env}
-// EvalPrimOpR:     returns Hole::PrimOpR(Expression, BinOp, Expression), {env}
-// EvalIfTrue:      returns Rewrite(Expression), {env}
-// EvalIfFalse:     returns Rewrite(Expression), {env}
-// EvalIf:          returns Hole::If(Expression, Expression, Expression), {env}
-// EvalApp:         returns Rewrite(Expression), {x -> v} + {env_captured}
-// EvalAppFun:      returns Hole::AppFun(Expression, Value), {env}
-// EvalAppArg:      returns Hole::AppArg(Expression, Expression), {env}
-// EvalFun:         returns Atom(Value), {}
-// EvalLet:         returns Rewrite(Expression), {x -> v} + {env}
-// EvalLetBindings: returns Hole::LetBindings(Var, Expression, Expression), {env}
-
 struct Frame
 {
     std::string before, after;
@@ -63,7 +45,7 @@ void interpret(const std::string &expr)
 {
     std::optional<Evaluation> initial = parse(expr);
     if (!initial)
-        throw std::runtime_error("could not parse '" + expr + "'");
+        throw std::runtime_error("could not parse '" + expr + "': " + last_parse_error());
 
     std::string cursor = to_string(initial->rule);
     std::string env = to_string(*initial->env);
@@ -74,7 +56,7 @@ void interpret(const std::string &expr)
         std::string line = "Eval(" + cursor + ", " + env + ")";
         std::optional<Evaluation> eval = parse(line);
         if (!eval)
-            throw std::runtime_error("stuck, no rule applies to '" + line + "'");
+            throw std::runtime_error("stuck at '" + line + "': " + last_parse_error());
 
         std::string s = line;
         for (std::size_t i = context.size(); i-- > 1;)

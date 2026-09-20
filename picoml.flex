@@ -28,6 +28,10 @@
 "*"				{	return yy::parser::make_MULOP(BinOp::MUL);	}
 "/"				{	return yy::parser::make_MULOP(BinOp::DIV);	}
 
+"<>"			{	return yy::parser::make_RELOP(BinOp::NEQ);	}
+"<="			{	return yy::parser::make_RELOP(BinOp::LEQ);	}
+">="			{	return yy::parser::make_RELOP(BinOp::GEQ);	}
+
 [0-9]+			{ 	return yy::parser::make_INTEGER(strtod(yytext, NULL)); }
 "true"			{	return yy::parser::make_TRUE(true);		}
 "false"			{	return yy::parser::make_FALSE(false);	}

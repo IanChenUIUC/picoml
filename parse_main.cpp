@@ -11,7 +11,10 @@ int main(void)
     parser.parse();
 
     if (!result)
+    {
+        std::cerr << last_parse_error() << "\n";
         return 1;
+    }
 
     std::cout << result.value() << "\n";
     return 0;

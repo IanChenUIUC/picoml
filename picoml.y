@@ -15,20 +15,17 @@
 %code provides {
 
 yy::parser::symbol_type yylex();
+const std::string &last_parse_error();
 
 }
 
 %language "c++"
 
 %define parse.assert
+%define parse.error detailed
 %define api.token.constructor
 %define api.value.type variant
 %define api.value.automove
-
-%precedence	IN
-%precedence	ELSE MAPSTO
-%left		ADDOP MINUS
-%left		MULOP
 
 %parse-param { std::optional<Evaluation> &result }
 
@@ -51,16 +48,26 @@ yy::parser::symbol_type yylex();
 %type	<std::optional<Rule>>	EvalLet
 %type	<std::optional<Rule>>	EvalLetBinding
 
-%type	<std::optional<Value>>			value
+%type	<std::optional<Value>>		value
+%type	<std::optional<Value>>		closure
+
 %type	<std::optional<Expression>>	expr
+%type	<std::optional<Expression>>	cmp_expr
+%type	<std::optional<Expression>>	add_expr
+%type	<std::optional<Expression>>	mul_expr
 %type	<std::optional<Expression>>	atom
 %type	<std::optional<Expression>>	app
+
+%type	<BinOp>			addop
+%type	<BinOp>			mulop
+%type	<BinOp>			relop
+%type	<BinOp>			binop
 %type	<Binding>		binding
 %type	<Bindings>		binding_list
 %type	<Environment>	env
 
 %token	<Variable> 		VARIABLE
-%token	<BinOp>			ADDOP MULOP MINUS
+%token	<BinOp>			ADDOP MULOP MINUS RELOP
 
 %token	<int> 			INTEGER
 %token	<bool> 			TRUE
@@ -106,8 +113,8 @@ EvalConst
 			{ $$ = Rule::makeEvalConst(Value($TRUE)); }
 		| FALSE
 			{ $$ = Rule::makeEvalConst(Value($FALSE)); }
-		| '<' VARIABLE MAPSTO expr ',' env[captured] '>'
-			{ $$ = Rule::makeEvalConst(Value::makeFunction($VARIABLE, $expr.value(), $captured)); }
+		| closure
+			{ $$ = Rule::makeEvalConst($closure.value()); }
 		;
 
 EvalVar	: VARIABLE
@@ -145,29 +152,25 @@ EvalIf
 		;
 
 EvalPrimOp
-		: VAL value[left] ADDOP[op] VAL value[right]
-			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
-		| VAL value[left] MULOP[op] VAL value[right]
-			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
-		| VAL value[left] MINUS[op] VAL value[right]
+		: VAL value[left] binop[op] VAL value[right]
 			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
 		;
 
 EvalPrimOpL
-		: expr[left] ADDOP[op] VAL value[right]
+		: cmp_expr[left] relop[op] VAL value[right]
 			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
-		| expr[left] MULOP[op] VAL value[right]
+		| add_expr[left] addop[op] VAL value[right]
 			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
-		| expr[left] MINUS[op] VAL value[right]
+		| mul_expr[left] mulop[op] VAL value[right]
 			{ $$ = Rule::makeEvalPrimOpL($left.value(), $right.value(), $op); }
 		;
 
 EvalPrimOpR
-		: expr[left] ADDOP[op] expr[right]
+		: cmp_expr[left] relop[op] add_expr[right]
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
-		| expr[left] MULOP[op] expr[right]
+		| add_expr[left] addop[op] mul_expr[right]
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
-		| expr[left] MINUS[op] expr[right]
+		| mul_expr[left] mulop[op] app[right]
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
 		;
 
@@ -224,10 +227,31 @@ value	: INTEGER
 			{ $$ = Value($FALSE); }
 		| '(' value[left] ',' value[right] ')'
 			{ $$ = Value::makePair($left.value(), $right.value()); }
-		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
-			{ $$ = Value::makeFunction($VARIABLE, $body.value(), $env); }
+		| closure
+			{ $$ = $closure; }
 		| '(' value ')'
 			{ $$ = $2; }
+		;
+
+closure	: '<' VARIABLE MAPSTO expr[body] ',' env '>'
+			{ $$ = Value::makeFunction($VARIABLE, $body.value(), $env); }
+		;
+
+addop	: ADDOP				{ $$ = $1; }
+		| MINUS				{ $$ = $1; }
+		;
+
+mulop	: MULOP				{ $$ = $1; }
+		;
+
+relop	: RELOP				{ $$ = $1; }
+		| '>'				{ $$ = BinOp(BinOp::GT); }
+		| EQUAL				{ $$ = BinOp(BinOp::EQ); }
+		;
+
+binop	: addop				{ $$ = $1; }
+		| mulop				{ $$ = $1; }
+		| relop				{ $$ = $1; }
 		;
 
 atom	: VARIABLE
@@ -238,8 +262,8 @@ atom	: VARIABLE
 			{ $$ = Expression(Value($TRUE)); }
 		| FALSE
 			{ $$ = Expression(Value($FALSE)); }
-		| '<' VARIABLE MAPSTO expr[body] ',' env '>'
-			{ $$ = Expression(Value::makeFunction($VARIABLE, $body.value(), $env)); }
+		| closure
+			{ $$ = Expression($closure.value()); }
 		| '(' expr[left] ',' expr[right] ')'
 			{ $$ = Expression::makePair($left.value(), $right.value()); }
 		| '(' expr ')'
@@ -250,25 +274,56 @@ app		: app atom
 			{ $$ = Expression::makeApp($1.value(), $2.value()); }
 		| atom
 			{ $$ = $1; }
+		| MINUS INTEGER
+			{ $$ = Expression(Value(-$INTEGER)); }
 		;
 
-expr	: app
+mul_expr
+		: mul_expr[left] mulop[op] app[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
+		| app
+			{ $$ = $1; }
+		;
+
+add_expr
+		: add_expr[left] addop[op] mul_expr[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
+		| mul_expr
+			{ $$ = $1; }
+		;
+
+cmp_expr
+		: cmp_expr[left] relop[op] add_expr[right]
+			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
+		| add_expr
+			{ $$ = $1; }
+		;
+
+expr	: cmp_expr
 			{ $$ = $1; }
 		| FUN VARIABLE MAPSTO expr[body]
 			{ $$ = Expression::makeFunction($VARIABLE, $body.value()); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred.value(), $dotrue.value(), $dofalse.value()); }
-		| expr[left] ADDOP[op] expr[right]
-			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
-		| expr[left] MULOP[op] expr[right]
-			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
-		| expr[left] MINUS[op] expr[right]
-			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
 		| LET VARIABLE EQUAL expr[pre] IN expr[body]
 			{ $$ = Expression::makeLet($VARIABLE, $pre.value(), $body.value()); }
 		;
 
 %%
 
-void yy::parser::error(const std::string &) {
+namespace
+{
+
+std::string parse_error;
+
+}
+
+const std::string &last_parse_error()
+{
+    return parse_error;
+}
+
+void yy::parser::error(const std::string &message)
+{
+    parse_error = message;
 }

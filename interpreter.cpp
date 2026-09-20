@@ -209,6 +209,16 @@ AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
         if (*right == 0)
             throw std::runtime_error("division by zero: " + to_string(*rule.left) + " / " + to_string(*rule.right));
         return AppliedRule(Atom(Value(*left / *right)));
+    case BinOp::GT:
+        return AppliedRule(Atom(Value(*left > *right)));
+    case BinOp::LEQ:
+        return AppliedRule(Atom(Value(*left <= *right)));
+    case BinOp::GEQ:
+        return AppliedRule(Atom(Value(*left >= *right)));
+    case BinOp::EQ:
+        return AppliedRule(Atom(Value(*left == *right)));
+    case BinOp::NEQ:
+        return AppliedRule(Atom(Value(*left != *right)));
     }
     throw std::runtime_error("unknown operator");
 }

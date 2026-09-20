@@ -22,6 +22,11 @@ struct BinOp
         SUB,
         MUL,
         DIV,
+        GT,
+        LEQ,
+        GEQ,
+        EQ,
+        NEQ,
     } op;
 
     BinOp() = default;

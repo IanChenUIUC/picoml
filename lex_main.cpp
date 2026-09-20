@@ -35,6 +35,7 @@ std::string token_to_string(kind::symbol_kind_type token)
         return "<mapsto>";
     case kind::S_ADDOP:
     case kind::S_MULOP:
+    case kind::S_RELOP:
         return "<op>";
     case kind::S_INTEGER:
     case kind::S_TRUE:
@@ -61,7 +62,8 @@ int main(void)
             std::cout << " " << std::boolalpha << token.value.as<bool>();
         else if (token.kind() == kind::S_VARIABLE)
             std::cout << " " << token.value.as<Variable>();
-        else if (token.kind() == kind::S_ADDOP || token.kind() == kind::S_MULOP)
+        else if (token.kind() == kind::S_ADDOP || token.kind() == kind::S_MULOP ||
+                 token.kind() == kind::S_RELOP)
             std::cout << " " << token.value.as<BinOp>();
         std::cout << "\n";
     };

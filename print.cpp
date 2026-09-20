@@ -10,8 +10,9 @@ bool isCompound(const Expression &expression)
     return std::visit(
         [](auto &&arg) -> bool {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, Value> || std::is_same_v<T, Variable> ||
-                          std::is_same_v<T, Expression::PairExpr>)
+            if constexpr (std::is_same_v<T, Value>)
+                return std::holds_alternative<int>(arg.val) && std::get<int>(arg.val) < 0;
+            else if constexpr (std::is_same_v<T, Variable> || std::is_same_v<T, Expression::PairExpr>)
                 return false;
             else if constexpr (std::is_same_v<T, Expression::BinaryExpr> || std::is_same_v<T, Expression::AppExpr> ||
                                std::is_same_v<T, Expression::IfExpr> || std::is_same_v<T, Expression::FunExpr> ||
@@ -44,6 +45,16 @@ std::ostream &operator<<(std::ostream &os, const BinOp &binop)
         return os << "*";
     case BinOp::DIV:
         return os << "/";
+    case BinOp::GT:
+        return os << ">";
+    case BinOp::LEQ:
+        return os << "<=";
+    case BinOp::GEQ:
+        return os << ">=";
+    case BinOp::EQ:
+        return os << "=";
+    case BinOp::NEQ:
+        return os << "<>";
     }
     return os;
 }
