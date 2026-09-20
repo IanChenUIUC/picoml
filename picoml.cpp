@@ -125,6 +125,11 @@ Environment::Environment(Bindings &&bindings) : bindings(std::move(bindings))
 {
 }
 
+void Environment::Add(Variable &&var, Value &&val)
+{
+    bindings.bindings.insert_or_assign(var, std::make_unique<Value>(std::move(val)));
+}
+
 Rule::EvalConst::EvalConst(Value &&val) : val(std::make_unique<Value>(std::move(val)))
 {
 }

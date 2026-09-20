@@ -85,7 +85,7 @@ std::string Hole::before() const
             else if constexpr (std::is_same_v<T, AppArg>)
                 return "";
             else if constexpr (std::is_same_v<T, LetBindings>)
-                return "";
+                return "let " + to_string(*h.var) + " = ";
             else
                 static_assert(false, "non-exhaustive visitor!");
         },
@@ -112,7 +112,7 @@ std::string Hole::after() const
             else if constexpr (std::is_same_v<T, AppArg>)
                 return "";
             else if constexpr (std::is_same_v<T, LetBindings>)
-                return "";
+                return " in " + to_string(*h.body);
             else
                 static_assert(false, "non-exhaustive visitor!");
         },
@@ -139,7 +139,7 @@ std::string Hole::cursor() const
             else if constexpr (std::is_same_v<T, AppArg>)
                 return "";
             else if constexpr (std::is_same_v<T, LetBindings>)
-                return "";
+                return to_string(*h.pre);
             else
                 static_assert(false, "non-exhaustive visitor!");
         },
@@ -245,10 +245,12 @@ AppliedRule Applier::operator()(Rule::EvalFun &rule)
 
 AppliedRule Applier::operator()(Rule::EvalLet &rule)
 {
-    throw std::runtime_error("Not implemented");
+    env.Add(std::move(*rule.var), std::move(*rule.val));
+    return AppliedRule(Rewrite(std::move(*rule.body)), std::move(env));
 }
 
 AppliedRule Applier::operator()(Rule::EvalLetBinding &rule)
 {
-    throw std::runtime_error("Not implemented");
+    return AppliedRule(Hole(Hole::LetBindings(std::move(*rule.var), std::move(*rule.pre), std::move(*rule.body))),
+                       std::move(env));
 }

@@ -158,6 +158,8 @@ struct Environment
 
     Environment() = default;
     Environment(Bindings &&bindings);
+
+    void Add(Variable &&var, Value &&val);
 };
 
 struct Rule
