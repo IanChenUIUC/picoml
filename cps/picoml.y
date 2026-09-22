@@ -32,6 +32,7 @@ const std::string &last_parse_error();
 %type	<std::optional<Rule>>		CPS_Trans_Var
 %type	<std::optional<Rule>>		CPS_Trans_Const
 %type	<std::optional<Rule>>		CPS_Trans_If
+%type	<std::optional<Rule>>		CPS_Trans_App
 
 %type	<std::optional<Expression>>	expr
 %type	<std::optional<Expression>>	cmp_expr
@@ -63,6 +64,7 @@ const std::string &last_parse_error();
 input	: CPS_Trans_Var		{ result = $1; }
 		| CPS_Trans_Const	{ result = $1; }
 		| CPS_Trans_If		{ result = $1; }
+		| CPS_Trans_App		{ result = $1; }
 		;
 
 CPS_Trans_Var
@@ -84,6 +86,11 @@ CPS_Trans_Const
 CPS_Trans_If
 		: LL IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse] RR atom
 			{ $$ = Rule::makeTransIf($pred.value(), $dotrue.value(), $dofalse.value(), $atom.value()); }
+		;
+
+CPS_Trans_App
+		: LL app atom[arg] RR atom[cont]
+			{ $$ = Rule::makeTransApp($app.value(), $arg.value(), $cont.value()); }
 		;
 
 addop	: ADDOP				{ $$ = $1; }

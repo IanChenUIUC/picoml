@@ -147,7 +147,16 @@ struct Rule
         TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
     };
 
-    using Alternative = std::variant<TransVar, TransConst, TransIf>;
+    struct TransApp
+    {
+        std::unique_ptr<Expression> fun;
+        std::unique_ptr<Expression> arg;
+        std::unique_ptr<Expression> continuation;
+
+        TransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
+    };
+
+    using Alternative = std::variant<TransVar, TransConst, TransIf, TransApp>;
 
     Alternative rule;
     explicit Rule(Alternative &&alternative);
@@ -155,6 +164,7 @@ struct Rule
     static Rule makeTransVar(Variable &&var, Expression &&continuation);
     static Rule makeTransConst(Value &&val, Expression &&continuation);
     static Rule makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
+    static Rule makeTransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
 };
 
 struct Paren
