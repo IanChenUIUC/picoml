@@ -6,7 +6,7 @@ FLEX       ?= flex
 
 PROGS     := lexer parser main
 COMMON    := lex.yy.cpp picoml.cpp print.cpp
-GENERATED := picoml.tab.cpp picoml.tab.h picoml.output lex.yy.cpp
+GENERATED := picoml.tab.cpp picoml.tab.h picoml.output lex.yy.cpp stack.hh
 
 all: lexer parser
 

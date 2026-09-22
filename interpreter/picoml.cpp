@@ -51,6 +51,11 @@ Expression::BinaryExpr::BinaryExpr(Expression &&left, Expression &&right, BinOp 
 {
 }
 
+Expression::UnaryExpr::UnaryExpr(Expression &&right, BinOp op)
+    : right(std::make_unique<Expression>(std::move(right))), op(op)
+{
+}
+
 Expression::PairExpr::PairExpr(Expression &&left, Expression &&right)
     : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right)))
 {
@@ -84,6 +89,11 @@ Expression Expression::makeIf(Expression &&pred, Expression &&dotrue, Expression
 Expression Expression::makeBinary(Expression &&left, Expression &&right, BinOp op)
 {
     return Expression(BinaryExpr(std::move(left), std::move(right), op));
+}
+
+Expression Expression::makeUnary(Expression &&right, BinOp op)
+{
+    return Expression(UnaryExpr(std::move(right), op));
 }
 
 Expression Expression::makePair(Expression &&left, Expression &&right)
@@ -166,6 +176,15 @@ Rule::EvalIfFalse::EvalIfFalse(Expression &&dotrue, Expression &&dofalse)
 Rule::EvalIf::EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
     : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
       dofalse(std::make_unique<Expression>(std::move(dofalse)))
+{
+}
+
+Rule::EvalMonOp::EvalMonOp(Value &&right, BinOp op) : right(std::make_unique<Value>(std::move(right))), op(op)
+{
+}
+
+Rule::EvalMonOpR::EvalMonOpR(Expression &&right, BinOp op)
+    : right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 
@@ -255,6 +274,16 @@ Rule Rule::makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse)
 Rule Rule::makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
 {
     return Rule(EvalIf(std::move(pred), std::move(dotrue), std::move(dofalse)));
+}
+
+Rule Rule::makeEvalMonOp(Value &&right, BinOp op)
+{
+    return Rule(EvalMonOp(std::move(right), op));
+}
+
+Rule Rule::makeEvalMonOpR(Expression &&right, BinOp op)
+{
+    return Rule(EvalMonOpR(std::move(right), op));
 }
 
 Rule Rule::makeEvalPrimOp(Value &&left, Value &&right, BinOp op)

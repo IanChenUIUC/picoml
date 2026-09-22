@@ -64,6 +64,8 @@ Though `let rec` is not implemented in this grammar, recursion can still be achi
 - EvalPair:	      Eval((Val v1, Val v2), env) => Val (v1,v2)
 - EvalPairFst:	  Eval((exp1, Val v2), env) => Eval((Eval(exp1, env), Val v2), env)
 - EvalPairSnd:	  Eval((exp1,exp2), env) => Eval((exp1, Eval(exp2, env)), env)
+- EvalMonOp:      Eval(op (Val v), env) => Val (op v)
+- EvalMonOpR:     Eval(op exp1, env) => Eval(op Eval(exp1, env))
 - EvalPrimOp:	    Eval((Val v1) op (Val v2), env) => Val (v1 op v2)
 - EvalPrimOpL:	  Eval(exp1 op (Val v2), env) => Eval((Eval(exp1, env) op (Val v2)), env)
 - EvalPrimOpR:	  Eval(exp1 op exp2, env) => Eval(exp1 op (Eval(exp2, env)), env)
@@ -85,7 +87,7 @@ Most features are intuitive and match OCaml.
 ## Implementation
 
 Bison is used to generate a parser that when given an expression (string) would determine what is the next evaluation rule to apply.
-There are 17 rules, as specified above.
+There are 19 rules, as specified above.
 
 In particular, the interpreter is largely string based.
 An expression (string) is parsed into an evaluation rule; applying the rule generates a new expression which gets serialized back into a string, after which the process repeats until a Value is obtained.

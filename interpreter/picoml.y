@@ -38,6 +38,8 @@ const std::string &last_parse_error();
 %type 	<std::optional<Rule>>	EvalIfTrue
 %type 	<std::optional<Rule>>	EvalIfFalse
 %type 	<std::optional<Rule>>	EvalIf
+%type 	<std::optional<Rule>>	EvalMonOp
+%type 	<std::optional<Rule>>	EvalMonOpR
 %type 	<std::optional<Rule>>	EvalPrimOp
 %type 	<std::optional<Rule>>	EvalPrimOpL
 %type 	<std::optional<Rule>>	EvalPrimOpR
@@ -52,6 +54,8 @@ const std::string &last_parse_error();
 %type	<std::optional<Value>>		closure
 
 %type	<std::optional<Expression>>	expr
+%type	<std::optional<Expression>>	keyword_expr
+%type	<std::optional<Expression>>	unary_expr
 %type	<std::optional<Expression>>	cmp_expr
 %type	<std::optional<Expression>>	add_expr
 %type	<std::optional<Expression>>	mul_expr
@@ -93,6 +97,8 @@ rule 	: EvalConst 		{ $$ = $1; }
 		| EvalIfTrue 		{ $$ = $1; }
 		| EvalIfFalse 		{ $$ = $1; }
 		| EvalIf 			{ $$ = $1; }
+		| EvalMonOp 		{ $$ = $1; }
+		| EvalMonOpR 		{ $$ = $1; }
 		| EvalPrimOp 		{ $$ = $1; }
 		| EvalPrimOpL 		{ $$ = $1; }
 		| EvalPrimOpR 		{ $$ = $1; }
@@ -107,8 +113,6 @@ rule 	: EvalConst 		{ $$ = $1; }
 EvalConst
 		: INTEGER
 			{ $$ = Rule::makeEvalConst(Value($INTEGER)); }
-		| MINUS INTEGER
-			{ $$ = Rule::makeEvalConst(Value(-$INTEGER)); }
 		| TRUE
 			{ $$ = Rule::makeEvalConst(Value($TRUE)); }
 		| FALSE
@@ -151,6 +155,18 @@ EvalIf
 			{ $$ = Rule::makeEvalIf($pred.value(), $dotrue.value(), $dofalse.value()); }
 		;
 
+EvalMonOp
+		: MINUS[op] VAL value[right]
+			{ $$ = Rule::makeEvalMonOp($right.value(), $op); }
+		;
+
+EvalMonOpR
+		: MINUS[op] unary_expr[right]
+			{ $$ = Rule::makeEvalMonOpR($right.value(), $op); }
+		| MINUS[op] keyword_expr[right]
+			{ $$ = Rule::makeEvalMonOpR($right.value(), $op); }
+		;
+
 EvalPrimOp
 		: VAL value[left] binop[op] VAL value[right]
 			{ $$ = Rule::makeEvalPrimOp($left.value(), $right.value(), $op); }
@@ -170,7 +186,7 @@ EvalPrimOpR
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
 		| add_expr[left] addop[op] mul_expr[right]
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
-		| mul_expr[left] mulop[op] app[right]
+		| mul_expr[left] mulop[op] unary_expr[right]
 			{ $$ = Rule::makeEvalPrimOpR($left.value(), $right.value(), $op); }
 		;
 
@@ -274,14 +290,19 @@ app		: app atom
 			{ $$ = Expression::makeApp($1.value(), $2.value()); }
 		| atom
 			{ $$ = $1; }
-		| MINUS INTEGER
-			{ $$ = Expression(Value(-$INTEGER)); }
+		;
+
+unary_expr
+		: MINUS[op] unary_expr[right]
+			{ $$ = Expression::makeUnary($right.value(), $op); }
+		| app
+			{ $$ = $1; }
 		;
 
 mul_expr
-		: mul_expr[left] mulop[op] app[right]
+		: mul_expr[left] mulop[op] unary_expr[right]
 			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
-		| app
+		| unary_expr
 			{ $$ = $1; }
 		;
 
@@ -299,14 +320,21 @@ cmp_expr
 			{ $$ = $1; }
 		;
 
-expr	: cmp_expr
-			{ $$ = $1; }
-		| FUN VARIABLE MAPSTO expr[body]
+keyword_expr
+		: FUN VARIABLE MAPSTO expr[body]
 			{ $$ = Expression::makeFunction($VARIABLE, $body.value()); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred.value(), $dotrue.value(), $dofalse.value()); }
 		| LET VARIABLE EQUAL expr[pre] IN expr[body]
 			{ $$ = Expression::makeLet($VARIABLE, $pre.value(), $body.value()); }
+		;
+
+expr	: cmp_expr
+			{ $$ = $1; }
+		| keyword_expr
+			{ $$ = $1; }
+		| MINUS[op] keyword_expr[right]
+			{ $$ = Expression::makeUnary($right.value(), $op); }
 		;
 
 %%

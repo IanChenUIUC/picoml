@@ -1,4 +1,5 @@
 #include "interpreter.h"
+#include "picoml.h"
 #include <stdexcept>
 #include <type_traits>
 
@@ -17,6 +18,10 @@ Hole::PairLeft::PairLeft(Expression &&left, Value &&right)
 
 Hole::PairRight::PairRight(Expression &&left, Expression &&right)
     : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right)))
+{
+}
+
+Hole::MonOpR::MonOpR(Expression &&right, BinOp op) : right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 
@@ -74,6 +79,8 @@ std::string Hole::before() const
                 return "(";
             else if constexpr (std::is_same_v<T, PairRight>)
                 return "(" + to_string(*h.left) + ", ";
+            else if constexpr (std::is_same_v<T, MonOpR>)
+                return to_string(h.op) + " ";
             else if constexpr (std::is_same_v<T, PrimOpL>)
                 return "";
             else if constexpr (std::is_same_v<T, PrimOpR>)
@@ -101,6 +108,8 @@ std::string Hole::after() const
                 return ", Val " + to_string(*h.right) + ")";
             else if constexpr (std::is_same_v<T, PairRight>)
                 return ")";
+            else if constexpr (std::is_same_v<T, MonOpR>)
+                return "";
             else if constexpr (std::is_same_v<T, PrimOpL>)
                 return " " + to_string(h.op) + " Val " + to_string(*h.right);
             else if constexpr (std::is_same_v<T, PrimOpR>)
@@ -127,6 +136,8 @@ std::string Hole::cursor() const
             if constexpr (std::is_same_v<T, PairLeft>)
                 return to_string(*h.left);
             else if constexpr (std::is_same_v<T, PairRight>)
+                return to_string(*h.right);
+            else if constexpr (std::is_same_v<T, MonOpR>)
                 return to_string(*h.right);
             else if constexpr (std::is_same_v<T, PrimOpL>)
                 return to_string(*h.left);
@@ -190,6 +201,21 @@ AppliedRule Applier::operator()(Rule::EvalIf &rule)
                        std::move(env));
 }
 
+AppliedRule Applier::operator()(Rule::EvalMonOp &rule)
+{
+    const int *right = std::get_if<int>(&rule.right->val);
+    if (!right)
+        throw std::runtime_error("expected integer, got " + to_string(*rule.right));
+
+    switch (rule.op.op)
+    {
+    case BinOp::SUB:
+        return AppliedRule(Atom(Value(-*right)));
+    default:
+        throw std::runtime_error("unknown operator");
+    }
+}
+
 AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
 {
     const int *left = std::get_if<int>(&rule.left->val);
@@ -221,6 +247,11 @@ AppliedRule Applier::operator()(Rule::EvalPrimOp &rule)
         return AppliedRule(Atom(Value(*left != *right)));
     }
     throw std::runtime_error("unknown operator");
+}
+
+AppliedRule Applier::operator()(Rule::EvalMonOpR &rule)
+{
+    return AppliedRule(Hole(Hole::MonOpR(std::move(*rule.right), rule.op)), std::move(env));
 }
 
 AppliedRule Applier::operator()(Rule::EvalPrimOpL &rule)

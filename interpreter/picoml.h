@@ -92,6 +92,14 @@ struct Expression
         BinaryExpr(Expression &&left, Expression &&right, BinOp op);
     };
 
+    struct UnaryExpr
+    {
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        UnaryExpr(Expression &&right, BinOp op);
+    };
+
     struct PairExpr
     {
         std::unique_ptr<Expression> left;
@@ -125,7 +133,8 @@ struct Expression
         LetExpr(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    using Alternative = std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr, LetExpr>;
+    using Alternative =
+        std::variant<Value, Variable, IfExpr, BinaryExpr, UnaryExpr, PairExpr, FunExpr, AppExpr, LetExpr>;
 
     Alternative expr;
 
@@ -133,6 +142,7 @@ struct Expression
 
     static Expression makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     static Expression makeBinary(Expression &&left, Expression &&right, BinOp op);
+    static Expression makeUnary(Expression &&right, BinOp op);
     static Expression makePair(Expression &&left, Expression &&right);
     static Expression makeFunction(Variable &&param, Expression &&body);
     static Expression makeApp(Expression &&fun, Expression &&arg);
@@ -232,6 +242,22 @@ struct Rule
         EvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
+    struct EvalMonOp
+    {
+        std::unique_ptr<Value> right;
+        BinOp op;
+
+        EvalMonOp(Value &&right, BinOp op);
+    };
+
+    struct EvalMonOpR
+    {
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        EvalMonOpR(Expression &&right, BinOp op);
+    };
+
     struct EvalPrimOp
     {
         std::unique_ptr<Value> left;
@@ -312,7 +338,7 @@ struct Rule
     };
 
     using Alternative = std::variant<EvalConst, EvalVar, EvalPair, EvalPairFst, EvalPairSnd, EvalIfTrue, EvalIfFalse,
-                                     EvalIf, EvalPrimOp, EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg,
+                                     EvalIf, EvalMonOp, EvalMonOpR, EvalPrimOp, EvalPrimOpL, EvalPrimOpR, EvalApp, EvalAppFun, EvalAppArg,
                                      EvalFun, EvalLet, EvalLetBinding>;
 
     Alternative rule;
@@ -327,6 +353,8 @@ struct Rule
     static Rule makeEvalIfTrue(Expression &&dotrue, Expression &&dofalse);
     static Rule makeEvalIfFalse(Expression &&dotrue, Expression &&dofalse);
     static Rule makeEvalIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+    static Rule makeEvalMonOp(Value &&right, BinOp op);
+    static Rule makeEvalMonOpR(Expression &&right, BinOp op);
     static Rule makeEvalPrimOp(Value &&left, Value &&right, BinOp op);
     static Rule makeEvalPrimOpL(Expression &&left, Value &&right, BinOp op);
     static Rule makeEvalPrimOpR(Expression &&left, Expression &&right, BinOp op);

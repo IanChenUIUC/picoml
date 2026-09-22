@@ -46,6 +46,14 @@ struct Hole
         PairRight(Expression &&left, Expression &&right);
     };
 
+    struct MonOpR
+    {
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        MonOpR(Expression &&right, BinOp op);
+    };
+
     struct PrimOpL
     {
         std::unique_ptr<Expression> left;
@@ -98,7 +106,7 @@ struct Hole
         LetBindings(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    using Alternative = std::variant<PairLeft, PairRight, PrimOpL, PrimOpR, If, AppFun, AppArg, LetBindings>;
+    using Alternative = std::variant<PairLeft, PairRight, MonOpR, PrimOpL, PrimOpR, If, AppFun, AppArg, LetBindings>;
 
     Alternative hole;
 
@@ -132,6 +140,8 @@ struct Applier
     AppliedRule operator()(Rule::EvalIfTrue &rule);
     AppliedRule operator()(Rule::EvalIfFalse &rule);
     AppliedRule operator()(Rule::EvalIf &rule);
+    AppliedRule operator()(Rule::EvalMonOp &rule);
+    AppliedRule operator()(Rule::EvalMonOpR &rule);
     AppliedRule operator()(Rule::EvalPrimOp &rule);
     AppliedRule operator()(Rule::EvalPrimOpL &rule);
     AppliedRule operator()(Rule::EvalPrimOpR &rule);
