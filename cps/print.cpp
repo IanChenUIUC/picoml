@@ -45,6 +45,8 @@ std::ostream &operator<<(std::ostream &os, const BinOp &binop)
         return os << "*";
     case BinOp::DIV:
         return os << "/";
+    case BinOp::LT:
+        return os << "<";
     case BinOp::GT:
         return os << ">";
     case BinOp::LEQ:

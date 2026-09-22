@@ -21,6 +21,7 @@ struct BinOp
         SUB,
         MUL,
         DIV,
+        LT,
         GT,
         LEQ,
         GEQ,

@@ -94,7 +94,6 @@ mulop	: MULOP				{ $$ = $1; }
 		;
 
 relop	: RELOP				{ $$ = $1; }
-		| '>'				{ $$ = BinOp(BinOp::GT); }
 		| EQUAL				{ $$ = BinOp(BinOp::EQ); }
 		;
 

@@ -29,6 +29,8 @@
 "<>"			{	return yy::parser::make_RELOP(BinOp::NEQ);	}
 "<="			{	return yy::parser::make_RELOP(BinOp::LEQ);	}
 ">="			{	return yy::parser::make_RELOP(BinOp::GEQ);	}
+"<"				{	return yy::parser::make_RELOP(BinOp::LT);	}
+">"				{	return yy::parser::make_RELOP(BinOp::GT);	}
 
 [0-9]+			{ 	return yy::parser::make_INTEGER(strtod(yytext, NULL)); }
 "true"			{	return yy::parser::make_TRUE(true);		}
@@ -41,7 +43,7 @@
 "[["			{	return yy::parser::token::LL;	}
 "]]"			{	return yy::parser::token::RR;	}
 
-[(){},<>]		{	return *yytext;	}
+[(){},]		{	return *yytext;	}
 [ \t\n]			{	}
 
 .				{	return yy::parser::token::ERROR;	}
