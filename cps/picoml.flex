@@ -12,8 +12,6 @@
 
 %%
 
-"Eval"			{	return yy::parser::token::EVAL; 	}
-"Val"			{	return yy::parser::token::VAL;		}
 "if"			{	return yy::parser::token::IF;		}
 "then"			{	return yy::parser::token::THEN;		}
 "else"			{	return yy::parser::token::ELSE;		}
@@ -40,7 +38,10 @@
 					return yy::parser::make_VARIABLE(std::string(yytext));
 				}
 
-[(){},\[\]<>]	{	return *yytext;	}
+"[["			{	return yy::parser::token::LL;	}
+"]]"			{	return yy::parser::token::RR;	}
+
+[(){},<>]		{	return *yytext;	}
 [ \t\n.]		{	}
 
 .				{	return yy::parser::token::ERROR;	}
