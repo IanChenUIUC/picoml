@@ -95,6 +95,13 @@ Rule::TransConst::TransConst(Value &&val, Expression &&continuation)
 {
 }
 
+Rule::TransIf::TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation)
+    : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
+      dofalse(std::make_unique<Expression>(std::move(dofalse))),
+      continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -107,4 +114,9 @@ Rule Rule::makeTransVar(Variable &&var, Expression &&continuation)
 Rule Rule::makeTransConst(Value &&val, Expression &&continuation)
 {
     return Rule(TransConst(std::move(val), std::move(continuation)));
+}
+
+Rule Rule::makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation)
+{
+    return Rule(TransIf(std::move(pred), std::move(dotrue), std::move(dofalse), std::move(continuation)));
 }

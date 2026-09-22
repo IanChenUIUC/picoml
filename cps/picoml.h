@@ -136,13 +136,24 @@ struct Rule
         TransConst(Value &&val, Expression &&continuation);
     };
 
-    using Alternative = std::variant<TransVar, TransConst>;
+    struct TransIf
+    {
+        std::unique_ptr<Expression> pred;
+        std::unique_ptr<Expression> dotrue;
+        std::unique_ptr<Expression> dofalse;
+        std::unique_ptr<Expression> continuation;
+
+        TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
+    };
+
+    using Alternative = std::variant<TransVar, TransConst, TransIf>;
 
     Alternative rule;
     explicit Rule(Alternative &&alternative);
 
     static Rule makeTransVar(Variable &&var, Expression &&continuation);
     static Rule makeTransConst(Value &&val, Expression &&continuation);
+    static Rule makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
 };
 
 struct Paren
