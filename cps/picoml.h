@@ -128,12 +128,21 @@ struct Rule
         TransVar(Variable &&var, Expression &&continuation);
     };
 
-    using Alternative = std::variant<TransVar>;
+    struct TransConst
+    {
+        std::unique_ptr<Value> val;
+        std::unique_ptr<Expression> continuation;
+
+        TransConst(Value &&val, Expression &&continuation);
+    };
+
+    using Alternative = std::variant<TransVar, TransConst>;
 
     Alternative rule;
     explicit Rule(Alternative &&alternative);
 
     static Rule makeTransVar(Variable &&var, Expression &&continuation);
+    static Rule makeTransConst(Value &&val, Expression &&continuation);
 };
 
 struct Paren

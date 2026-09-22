@@ -90,6 +90,11 @@ Rule::TransVar::TransVar(Variable &&var, Expression &&continuation)
 {
 }
 
+Rule::TransConst::TransConst(Value &&val, Expression &&continuation)
+    : val(std::make_unique<Value>(std::move(val))), continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -97,4 +102,9 @@ Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 Rule Rule::makeTransVar(Variable &&var, Expression &&continuation)
 {
     return Rule(TransVar(std::move(var), std::move(continuation)));
+}
+
+Rule Rule::makeTransConst(Value &&val, Expression &&continuation)
+{
+    return Rule(TransConst(std::move(val), std::move(continuation)));
 }

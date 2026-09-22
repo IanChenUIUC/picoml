@@ -113,6 +113,8 @@ std::ostream &operator<<(std::ostream &os, const Rule &rule)
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Rule::TransVar>)
                 os << "[[" << *arg.var << "]] " << Paren{*arg.continuation};
+            else if constexpr (std::is_same_v<T, Rule::TransConst>)
+                os << "[[" << *arg.val << "]] " << Paren{*arg.continuation};
             else
                 static_assert(false, "non-exhaustive visitor");
         },

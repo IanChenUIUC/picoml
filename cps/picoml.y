@@ -30,6 +30,7 @@ const std::string &last_parse_error();
 %parse-param { std::optional<Rule> &result }
 
 %type	<std::optional<Rule>>		CPS_Trans_Var
+%type	<std::optional<Rule>>		CPS_Trans_Const
 
 %type	<std::optional<Expression>>	expr
 %type	<std::optional<Expression>>	cmp_expr
@@ -59,11 +60,23 @@ const std::string &last_parse_error();
 %%
 
 input	: CPS_Trans_Var		{ result = $1; }
+		| CPS_Trans_Const	{ result = $1; }
 		;
 
 CPS_Trans_Var
 		: LL VARIABLE RR atom
 			{ $$ = Rule::makeTransVar($VARIABLE, $atom.value()); }
+		;
+
+CPS_Trans_Const
+		: LL INTEGER RR atom
+			{ $$ = Rule::makeTransConst(Value($INTEGER), $atom.value()); }
+		| LL MINUS INTEGER RR atom
+			{ $$ = Rule::makeTransConst(Value(-$INTEGER), $atom.value()); }
+		| LL TRUE RR atom
+			{ $$ = Rule::makeTransConst(Value($TRUE), $atom.value()); }
+		| LL FALSE RR atom
+			{ $$ = Rule::makeTransConst(Value($FALSE), $atom.value()); }
 		;
 
 addop	: ADDOP				{ $$ = $1; }
