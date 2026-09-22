@@ -41,7 +41,7 @@
 				}
 
 [(){},<>]		{	return *yytext;	}
-[ \t\n.]		{	}
+[ \t\n]			{	}
 
 .				{	return yy::parser::token::ERROR;	}
 			
