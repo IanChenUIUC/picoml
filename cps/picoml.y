@@ -36,6 +36,7 @@ const std::string &last_parse_error();
 %type	<std::optional<Rule>>		CPS_Trans_Binop
 %type	<std::optional<Rule>>		CPS_Trans_Monop
 %type	<std::optional<Rule>>		CPS_Trans_Fun
+%type	<std::optional<Rule>>		CPS_Trans_LetIn
 
 %type	<std::optional<Expression>>	expr
 %type	<std::optional<Expression>>	keyword_expr
@@ -72,6 +73,7 @@ input	: CPS_Trans_Var		{ result = $1; }
 		| CPS_Trans_Binop	{ result = $1; }
 		| CPS_Trans_Monop	{ result = $1; }
 		| CPS_Trans_Fun		{ result = $1; }
+		| CPS_Trans_LetIn	{ result = $1; }
 		;
 
 CPS_Trans_Var
@@ -117,6 +119,11 @@ CPS_Trans_Monop
 CPS_Trans_Fun
 		: LL FUN VARIABLE[param] MAPSTO expr[body] RR atom[cont]
 			{ $$ = Rule::makeTransFun($param, $body.value(), $cont.value()); }
+		;
+
+CPS_Trans_LetIn
+		: LL LET VARIABLE EQUAL expr[pre] IN expr[body] RR atom[cont]
+			{ $$ = Rule::makeTransLetIn($VARIABLE, $pre.value(), $body.value(), $cont.value()); }
 		;
 
 addop	: ADDOP				{ $$ = $1; }

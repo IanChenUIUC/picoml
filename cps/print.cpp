@@ -131,6 +131,9 @@ std::ostream &operator<<(std::ostream &os, const Rule &rule)
                 os << "[[" << arg.op << Paren{*arg.right} << "]] " << Paren{*arg.continuation};
             else if constexpr (std::is_same_v<T, Rule::TransFun>)
                 os << "[[fun " << *arg.param << " -> " << *arg.body << "]] " << Paren{*arg.continuation};
+            else if constexpr (std::is_same_v<T, Rule::TransLetIn>)
+                os << "[[let " << *arg.var << " = " << Paren{*arg.pre} << " in " << *arg.body << "]] "
+                   << Paren{*arg.continuation};
             else
                 static_assert(false, "non-exhaustive visitor");
         },

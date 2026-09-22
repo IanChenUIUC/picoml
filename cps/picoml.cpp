@@ -136,6 +136,13 @@ Rule::TransFun::TransFun(Variable &&param, Expression &&body, Expression &&conti
 {
 }
 
+Rule::TransLetIn::TransLetIn(Variable &&var, Expression &&pre, Expression &&body, Expression &&continuation)
+    : var(std::make_unique<Variable>(std::move(var))), pre(std::make_unique<Expression>(std::move(pre))),
+      body(std::make_unique<Expression>(std::move(body))),
+      continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -173,4 +180,9 @@ Rule Rule::makeTransMonop(Expression &&right, BinOp op, Expression &&continuatio
 Rule Rule::makeTransFun(Variable &&param, Expression &&body, Expression &&continuation)
 {
     return Rule(TransFun(std::move(param), std::move(body), std::move(continuation)));
+}
+
+Rule Rule::makeTransLetIn(Variable &&var, Expression &&pre, Expression &&body, Expression &&continuation)
+{
+    return Rule(TransLetIn(std::move(var), std::move(pre), std::move(body), std::move(continuation)));
 }
