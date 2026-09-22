@@ -108,6 +108,12 @@ Rule::TransApp::TransApp(Expression &&fun, Expression &&arg, Expression &&contin
 {
 }
 
+Rule::TransBinop::TransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))), op(op),
+      continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -130,4 +136,9 @@ Rule Rule::makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofa
 Rule Rule::makeTransApp(Expression &&fun, Expression &&arg, Expression &&continuation)
 {
     return Rule(TransApp(std::move(fun), std::move(arg), std::move(continuation)));
+}
+
+Rule Rule::makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation)
+{
+    return Rule(TransBinop(std::move(left), std::move(right), op, std::move(continuation)));
 }

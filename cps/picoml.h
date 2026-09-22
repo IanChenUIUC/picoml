@@ -156,7 +156,17 @@ struct Rule
         TransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
     };
 
-    using Alternative = std::variant<TransVar, TransConst, TransIf, TransApp>;
+    struct TransBinop
+    {
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
+        BinOp op;
+        std::unique_ptr<Expression> continuation;
+
+        TransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation);
+    };
+
+    using Alternative = std::variant<TransVar, TransConst, TransIf, TransApp, TransBinop>;
 
     Alternative rule;
     explicit Rule(Alternative &&alternative);
@@ -165,6 +175,7 @@ struct Rule
     static Rule makeTransConst(Value &&val, Expression &&continuation);
     static Rule makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
     static Rule makeTransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
+    static Rule makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation);
 };
 
 struct Paren

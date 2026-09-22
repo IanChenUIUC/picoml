@@ -33,6 +33,7 @@ const std::string &last_parse_error();
 %type	<std::optional<Rule>>		CPS_Trans_Const
 %type	<std::optional<Rule>>		CPS_Trans_If
 %type	<std::optional<Rule>>		CPS_Trans_App
+%type	<std::optional<Rule>>		CPS_Trans_Binop
 
 %type	<std::optional<Expression>>	expr
 %type	<std::optional<Expression>>	cmp_expr
@@ -44,7 +45,6 @@ const std::string &last_parse_error();
 %type	<BinOp>			addop
 %type	<BinOp>			mulop
 %type	<BinOp>			relop
-%type	<BinOp>			binop
 
 %token	<Variable> 		VARIABLE
 %token	<BinOp>			ADDOP MULOP MINUS RELOP
@@ -65,6 +65,7 @@ input	: CPS_Trans_Var		{ result = $1; }
 		| CPS_Trans_Const	{ result = $1; }
 		| CPS_Trans_If		{ result = $1; }
 		| CPS_Trans_App		{ result = $1; }
+		| CPS_Trans_Binop	{ result = $1; }
 		;
 
 CPS_Trans_Var
@@ -93,6 +94,15 @@ CPS_Trans_App
 			{ $$ = Rule::makeTransApp($app.value(), $arg.value(), $cont.value()); }
 		;
 
+CPS_Trans_Binop
+		: LL cmp_expr[left] relop[op] add_expr[right] RR atom[cont]
+			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
+		| LL add_expr[left] addop[op] mul_expr[right] RR atom[cont]
+			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
+		| LL mul_expr[left] mulop[op] app[right] RR atom[cont]
+			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
+		;
+
 addop	: ADDOP				{ $$ = $1; }
 		| MINUS				{ $$ = $1; }
 		;
@@ -102,11 +112,6 @@ mulop	: MULOP				{ $$ = $1; }
 
 relop	: RELOP				{ $$ = $1; }
 		| EQUAL				{ $$ = BinOp(BinOp::EQ); }
-		;
-
-binop	: addop				{ $$ = $1; }
-		| mulop				{ $$ = $1; }
-		| relop				{ $$ = $1; }
 		;
 
 atom	: VARIABLE
