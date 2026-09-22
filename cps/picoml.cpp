@@ -130,6 +130,12 @@ Rule::TransMonop::TransMonop(Expression &&right, BinOp op, Expression &&continua
 {
 }
 
+Rule::TransFun::TransFun(Variable &&param, Expression &&body, Expression &&continuation)
+    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
+      continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -162,4 +168,9 @@ Rule Rule::makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expre
 Rule Rule::makeTransMonop(Expression &&right, BinOp op, Expression &&continuation)
 {
     return Rule(TransMonop(std::move(right), op, std::move(continuation)));
+}
+
+Rule Rule::makeTransFun(Variable &&param, Expression &&body, Expression &&continuation)
+{
+    return Rule(TransFun(std::move(param), std::move(body), std::move(continuation)));
 }

@@ -35,6 +35,7 @@ const std::string &last_parse_error();
 %type	<std::optional<Rule>>		CPS_Trans_App
 %type	<std::optional<Rule>>		CPS_Trans_Binop
 %type	<std::optional<Rule>>		CPS_Trans_Monop
+%type	<std::optional<Rule>>		CPS_Trans_Fun
 
 %type	<std::optional<Expression>>	expr
 %type	<std::optional<Expression>>	keyword_expr
@@ -70,6 +71,7 @@ input	: CPS_Trans_Var		{ result = $1; }
 		| CPS_Trans_App		{ result = $1; }
 		| CPS_Trans_Binop	{ result = $1; }
 		| CPS_Trans_Monop	{ result = $1; }
+		| CPS_Trans_Fun		{ result = $1; }
 		;
 
 CPS_Trans_Var
@@ -110,6 +112,11 @@ CPS_Trans_Monop
 			{ $$ = Rule::makeTransMonop($right.value(), $op, $cont.value()); }
 		| LL MINUS[op] keyword_expr[right] RR atom[cont]
 			{ $$ = Rule::makeTransMonop($right.value(), $op, $cont.value()); }
+		;
+
+CPS_Trans_Fun
+		: LL FUN VARIABLE[param] MAPSTO expr[body] RR atom[cont]
+			{ $$ = Rule::makeTransFun($param, $body.value(), $cont.value()); }
 		;
 
 addop	: ADDOP				{ $$ = $1; }
