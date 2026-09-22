@@ -110,9 +110,8 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
     return os;
 }
 
-std::ostream &operator<<(std::ostream &os, const Rule &rule)
+std::ostream &operator<<(std::ostream &os, const Rule::Alternative &alternative)
 {
-    os << "[[";
     std::visit(
         [&](auto &&arg) {
             using T = std::decay_t<decltype(arg)>;
@@ -135,6 +134,11 @@ std::ostream &operator<<(std::ostream &os, const Rule &rule)
             else
                 static_assert(false, "non-exhaustive visitor");
         },
-        rule.rule);
-    return os << "]] " << Paren{*rule.continuation};
+        alternative);
+    return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Rule &rule)
+{
+    return os << "[[" << rule.rule << "]] " << Paren{*rule.continuation};
 }

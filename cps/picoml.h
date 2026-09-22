@@ -224,6 +224,7 @@ std::ostream &operator<<(std::ostream &os, const BinOp &binop);
 std::ostream &operator<<(std::ostream &os, const Value &value);
 std::ostream &operator<<(std::ostream &os, const Variable &variable);
 std::ostream &operator<<(std::ostream &os, const Expression &expression);
+std::ostream &operator<<(std::ostream &os, const Rule::Alternative &alternative);
 std::ostream &operator<<(std::ostream &os, const Rule &rule);
 
 #endif

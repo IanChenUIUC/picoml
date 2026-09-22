@@ -8,7 +8,7 @@ PROGS     := lexer parser main
 COMMON    := lex.yy.cpp picoml.cpp print.cpp
 GENERATED := picoml.tab.cpp picoml.tab.h picoml.output lex.yy.cpp stack.hh
 
-all: lexer parser
+all: $(PROGS)
 
 lexer: lex_main.cpp $(COMMON) picoml.h picoml.tab.h
 	$(CXX) $(CXXFLAGS) -o $@ lex_main.cpp $(COMMON) $(LDLIBS)
@@ -16,8 +16,8 @@ lexer: lex_main.cpp $(COMMON) picoml.h picoml.tab.h
 parser: parse_main.cpp picoml.tab.cpp $(COMMON) picoml.h picoml.tab.h
 	$(CXX) $(CXXFLAGS) -o $@ parse_main.cpp picoml.tab.cpp $(COMMON) $(LDLIBS)
 
-main: main.cpp picoml.tab.cpp $(COMMON) picoml.h picoml.tab.h
-	$(CXX) $(CXXFLAGS) -o $@ main.cpp picoml.tab.cpp $(COMMON) $(LDLIBS)
+main: main.cpp cps.cpp picoml.tab.cpp $(COMMON) picoml.h picoml.tab.h cps.h
+	$(CXX) $(CXXFLAGS) -g -o $@ main.cpp cps.cpp picoml.tab.cpp $(COMMON) $(LDLIBS)
 
 picoml.tab.cpp picoml.tab.h picoml.output &: picoml.y
 	$(BISON) $(BISONFLAGS) -o picoml.tab.cpp --header=picoml.tab.h picoml.y
