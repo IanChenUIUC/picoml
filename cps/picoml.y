@@ -34,8 +34,11 @@ const std::string &last_parse_error();
 %type	<std::optional<Rule>>		CPS_Trans_If
 %type	<std::optional<Rule>>		CPS_Trans_App
 %type	<std::optional<Rule>>		CPS_Trans_Binop
+%type	<std::optional<Rule>>		CPS_Trans_Monop
 
 %type	<std::optional<Expression>>	expr
+%type	<std::optional<Expression>>	keyword_expr
+%type	<std::optional<Expression>>	unary_expr
 %type	<std::optional<Expression>>	cmp_expr
 %type	<std::optional<Expression>>	add_expr
 %type	<std::optional<Expression>>	mul_expr
@@ -66,6 +69,7 @@ input	: CPS_Trans_Var		{ result = $1; }
 		| CPS_Trans_If		{ result = $1; }
 		| CPS_Trans_App		{ result = $1; }
 		| CPS_Trans_Binop	{ result = $1; }
+		| CPS_Trans_Monop	{ result = $1; }
 		;
 
 CPS_Trans_Var
@@ -76,8 +80,6 @@ CPS_Trans_Var
 CPS_Trans_Const
 		: LL INTEGER RR atom
 			{ $$ = Rule::makeTransConst(Value($INTEGER), $atom.value()); }
-		| LL MINUS INTEGER RR atom
-			{ $$ = Rule::makeTransConst(Value(-$INTEGER), $atom.value()); }
 		| LL TRUE RR atom
 			{ $$ = Rule::makeTransConst(Value($TRUE), $atom.value()); }
 		| LL FALSE RR atom
@@ -99,8 +101,15 @@ CPS_Trans_Binop
 			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
 		| LL add_expr[left] addop[op] mul_expr[right] RR atom[cont]
 			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
-		| LL mul_expr[left] mulop[op] app[right] RR atom[cont]
+		| LL mul_expr[left] mulop[op] unary_expr[right] RR atom[cont]
 			{ $$ = Rule::makeTransBinop($left.value(), $right.value(), $op, $cont.value()); }
+		;
+
+CPS_Trans_Monop
+		: LL MINUS[op] unary_expr[right] RR atom[cont]
+			{ $$ = Rule::makeTransMonop($right.value(), $op, $cont.value()); }
+		| LL MINUS[op] keyword_expr[right] RR atom[cont]
+			{ $$ = Rule::makeTransMonop($right.value(), $op, $cont.value()); }
 		;
 
 addop	: ADDOP				{ $$ = $1; }
@@ -132,14 +141,19 @@ app		: app atom
 			{ $$ = Expression::makeApp($1.value(), $2.value()); }
 		| atom
 			{ $$ = $1; }
-		| MINUS INTEGER
-			{ $$ = Expression(Value(-$INTEGER)); }
+		;
+
+unary_expr
+		: MINUS[op] unary_expr[right]
+			{ $$ = Expression::makeUnary($right.value(), $op); }
+		| app
+			{ $$ = $1; }
 		;
 
 mul_expr
-		: mul_expr[left] mulop[op] app[right]
+		: mul_expr[left] mulop[op] unary_expr[right]
 			{ $$ = Expression::makeBinary($left.value(), $right.value(), $op); }
-		| app
+		| unary_expr
 			{ $$ = $1; }
 		;
 
@@ -157,14 +171,21 @@ cmp_expr
 			{ $$ = $1; }
 		;
 
-expr	: cmp_expr
-			{ $$ = $1; }
-		| FUN VARIABLE MAPSTO expr[body]
+keyword_expr
+		: FUN VARIABLE MAPSTO expr[body]
 			{ $$ = Expression::makeFunction($VARIABLE, $body.value()); }
 		| IF expr[pred] THEN expr[dotrue] ELSE expr[dofalse]
 			{ $$ = Expression::makeIf($pred.value(), $dotrue.value(), $dofalse.value()); }
 		| LET VARIABLE EQUAL expr[pre] IN expr[body]
 			{ $$ = Expression::makeLet($VARIABLE, $pre.value(), $body.value()); }
+		;
+
+expr	: cmp_expr
+			{ $$ = $1; }
+		| keyword_expr
+			{ $$ = $1; }
+		| MINUS[op] keyword_expr[right]
+			{ $$ = Expression::makeUnary($right.value(), $op); }
 		;
 
 %%

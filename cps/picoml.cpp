@@ -30,6 +30,11 @@ Expression::BinaryExpr::BinaryExpr(Expression &&left, Expression &&right, BinOp 
 {
 }
 
+Expression::UnaryExpr::UnaryExpr(Expression &&right, BinOp op)
+    : right(std::make_unique<Expression>(std::move(right))), op(op)
+{
+}
+
 Expression::PairExpr::PairExpr(Expression &&left, Expression &&right)
     : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right)))
 {
@@ -63,6 +68,11 @@ Expression Expression::makeIf(Expression &&pred, Expression &&dotrue, Expression
 Expression Expression::makeBinary(Expression &&left, Expression &&right, BinOp op)
 {
     return Expression(BinaryExpr(std::move(left), std::move(right), op));
+}
+
+Expression Expression::makeUnary(Expression &&right, BinOp op)
+{
+    return Expression(UnaryExpr(std::move(right), op));
 }
 
 Expression Expression::makePair(Expression &&left, Expression &&right)
@@ -114,6 +124,12 @@ Rule::TransBinop::TransBinop(Expression &&left, Expression &&right, BinOp op, Ex
 {
 }
 
+Rule::TransMonop::TransMonop(Expression &&right, BinOp op, Expression &&continuation)
+    : right(std::make_unique<Expression>(std::move(right))), op(op),
+      continuation(std::make_unique<Expression>(std::move(continuation)))
+{
+}
+
 Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
 {
 }
@@ -141,4 +157,9 @@ Rule Rule::makeTransApp(Expression &&fun, Expression &&arg, Expression &&continu
 Rule Rule::makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation)
 {
     return Rule(TransBinop(std::move(left), std::move(right), op, std::move(continuation)));
+}
+
+Rule Rule::makeTransMonop(Expression &&right, BinOp op, Expression &&continuation)
+{
+    return Rule(TransMonop(std::move(right), op, std::move(continuation)));
 }

@@ -14,9 +14,9 @@ bool isCompound(const Expression &expression)
                 return std::holds_alternative<int>(arg.val) && std::get<int>(arg.val) < 0;
             else if constexpr (std::is_same_v<T, Variable> || std::is_same_v<T, Expression::PairExpr>)
                 return false;
-            else if constexpr (std::is_same_v<T, Expression::BinaryExpr> || std::is_same_v<T, Expression::AppExpr> ||
-                               std::is_same_v<T, Expression::IfExpr> || std::is_same_v<T, Expression::FunExpr> ||
-                               std::is_same_v<T, Expression::LetExpr>)
+            else if constexpr (std::is_same_v<T, Expression::BinaryExpr> || std::is_same_v<T, Expression::UnaryExpr> ||
+                               std::is_same_v<T, Expression::AppExpr> || std::is_same_v<T, Expression::IfExpr> ||
+                               std::is_same_v<T, Expression::FunExpr> || std::is_same_v<T, Expression::LetExpr>)
                 return true;
             else
                 static_assert(false, "non-exhaustive visitor");
@@ -93,6 +93,8 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
                 os << "(" << *arg.left << ", " << *arg.right << ")";
             else if constexpr (std::is_same_v<T, Expression::BinaryExpr>)
                 os << Paren{*arg.left} << " " << arg.op << " " << Paren{*arg.right};
+            else if constexpr (std::is_same_v<T, Expression::UnaryExpr>)
+                os << arg.op << Paren{*arg.right};
             else if constexpr (std::is_same_v<T, Expression::AppExpr>)
                 os << Paren{*arg.fun} << " " << Paren{*arg.arg};
             else if constexpr (std::is_same_v<T, Expression::FunExpr>)
@@ -125,6 +127,8 @@ std::ostream &operator<<(std::ostream &os, const Rule &rule)
             else if constexpr (std::is_same_v<T, Rule::TransBinop>)
                 os << "[[" << Paren{*arg.left} << " " << arg.op << " " << Paren{*arg.right} << "]] "
                    << Paren{*arg.continuation};
+            else if constexpr (std::is_same_v<T, Rule::TransMonop>)
+                os << "[[" << arg.op << Paren{*arg.right} << "]] " << Paren{*arg.continuation};
             else
                 static_assert(false, "non-exhaustive visitor");
         },

@@ -72,6 +72,14 @@ struct Expression
         BinaryExpr(Expression &&left, Expression &&right, BinOp op);
     };
 
+    struct UnaryExpr
+    {
+        std::unique_ptr<Expression> right;
+        BinOp op;
+
+        UnaryExpr(Expression &&right, BinOp op);
+    };
+
     struct PairExpr
     {
         std::unique_ptr<Expression> left;
@@ -105,7 +113,8 @@ struct Expression
         LetExpr(Variable &&var, Expression &&pre, Expression &&body);
     };
 
-    using Alternative = std::variant<Value, Variable, IfExpr, BinaryExpr, PairExpr, FunExpr, AppExpr, LetExpr>;
+    using Alternative =
+        std::variant<Value, Variable, IfExpr, BinaryExpr, UnaryExpr, PairExpr, FunExpr, AppExpr, LetExpr>;
 
     Alternative expr;
 
@@ -113,6 +122,7 @@ struct Expression
 
     static Expression makeIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     static Expression makeBinary(Expression &&left, Expression &&right, BinOp op);
+    static Expression makeUnary(Expression &&right, BinOp op);
     static Expression makePair(Expression &&left, Expression &&right);
     static Expression makeFunction(Variable &&param, Expression &&body);
     static Expression makeApp(Expression &&fun, Expression &&arg);
@@ -166,7 +176,16 @@ struct Rule
         TransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation);
     };
 
-    using Alternative = std::variant<TransVar, TransConst, TransIf, TransApp, TransBinop>;
+    struct TransMonop
+    {
+        std::unique_ptr<Expression> right;
+        BinOp op;
+        std::unique_ptr<Expression> continuation;
+
+        TransMonop(Expression &&right, BinOp op, Expression &&continuation);
+    };
+
+    using Alternative = std::variant<TransVar, TransConst, TransIf, TransApp, TransBinop, TransMonop>;
 
     Alternative rule;
     explicit Rule(Alternative &&alternative);
@@ -176,6 +195,7 @@ struct Rule
     static Rule makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
     static Rule makeTransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
     static Rule makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation);
+    static Rule makeTransMonop(Expression &&right, BinOp op, Expression &&continuation);
 };
 
 struct Paren
