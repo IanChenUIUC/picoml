@@ -112,31 +112,29 @@ std::ostream &operator<<(std::ostream &os, const Expression &expression)
 
 std::ostream &operator<<(std::ostream &os, const Rule &rule)
 {
+    os << "[[";
     std::visit(
         [&](auto &&arg) {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, Rule::TransVar>)
-                os << "[[" << *arg.var << "]] " << Paren{*arg.continuation};
+                os << *arg.var;
             else if constexpr (std::is_same_v<T, Rule::TransConst>)
-                os << "[[" << *arg.val << "]] " << Paren{*arg.continuation};
+                os << *arg.val;
             else if constexpr (std::is_same_v<T, Rule::TransIf>)
-                os << "[[if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse << "]] "
-                   << Paren{*arg.continuation};
+                os << "if " << *arg.pred << " then " << *arg.dotrue << " else " << *arg.dofalse;
             else if constexpr (std::is_same_v<T, Rule::TransApp>)
-                os << "[[" << Paren{*arg.fun} << " " << Paren{*arg.arg} << "]] " << Paren{*arg.continuation};
+                os << Paren{*arg.fun} << " " << Paren{*arg.arg};
             else if constexpr (std::is_same_v<T, Rule::TransBinop>)
-                os << "[[" << Paren{*arg.left} << " " << arg.op << " " << Paren{*arg.right} << "]] "
-                   << Paren{*arg.continuation};
+                os << Paren{*arg.left} << " " << arg.op << " " << Paren{*arg.right};
             else if constexpr (std::is_same_v<T, Rule::TransMonop>)
-                os << "[[" << arg.op << Paren{*arg.right} << "]] " << Paren{*arg.continuation};
+                os << arg.op << Paren{*arg.right};
             else if constexpr (std::is_same_v<T, Rule::TransFun>)
-                os << "[[fun " << *arg.param << " -> " << *arg.body << "]] " << Paren{*arg.continuation};
+                os << "fun " << *arg.param << " -> " << *arg.body;
             else if constexpr (std::is_same_v<T, Rule::TransLetIn>)
-                os << "[[let " << *arg.var << " = " << Paren{*arg.pre} << " in " << *arg.body << "]] "
-                   << Paren{*arg.continuation};
+                os << "let " << *arg.var << " = " << Paren{*arg.pre} << " in " << *arg.body;
             else
                 static_assert(false, "non-exhaustive visitor");
         },
         rule.rule);
-    return os;
+    return os << "]] " << Paren{*rule.continuation};
 }

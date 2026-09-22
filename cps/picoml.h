@@ -134,17 +134,15 @@ struct Rule
     struct TransVar
     {
         std::unique_ptr<Variable> var;
-        std::unique_ptr<Expression> continuation;
 
-        TransVar(Variable &&var, Expression &&continuation);
+        TransVar(Variable &&var);
     };
 
     struct TransConst
     {
         std::unique_ptr<Value> val;
-        std::unique_ptr<Expression> continuation;
 
-        TransConst(Value &&val, Expression &&continuation);
+        TransConst(Value &&val);
     };
 
     struct TransIf
@@ -152,18 +150,16 @@ struct Rule
         std::unique_ptr<Expression> pred;
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
-        std::unique_ptr<Expression> continuation;
 
-        TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation);
+        TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
     struct TransApp
     {
         std::unique_ptr<Expression> fun;
         std::unique_ptr<Expression> arg;
-        std::unique_ptr<Expression> continuation;
 
-        TransApp(Expression &&fun, Expression &&arg, Expression &&continuation);
+        TransApp(Expression &&fun, Expression &&arg);
     };
 
     struct TransBinop
@@ -171,27 +167,24 @@ struct Rule
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
         BinOp op;
-        std::unique_ptr<Expression> continuation;
 
-        TransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation);
+        TransBinop(Expression &&left, Expression &&right, BinOp op);
     };
 
     struct TransMonop
     {
         std::unique_ptr<Expression> right;
         BinOp op;
-        std::unique_ptr<Expression> continuation;
 
-        TransMonop(Expression &&right, BinOp op, Expression &&continuation);
+        TransMonop(Expression &&right, BinOp op);
     };
 
     struct TransFun
     {
         std::unique_ptr<Variable> param;
         std::unique_ptr<Expression> body;
-        std::unique_ptr<Expression> continuation;
 
-        TransFun(Variable &&param, Expression &&body, Expression &&continuation);
+        TransFun(Variable &&param, Expression &&body);
     };
 
     struct TransLetIn
@@ -199,16 +192,17 @@ struct Rule
         std::unique_ptr<Variable> var;
         std::unique_ptr<Expression> pre;
         std::unique_ptr<Expression> body;
-        std::unique_ptr<Expression> continuation;
 
-        TransLetIn(Variable &&var, Expression &&pre, Expression &&body, Expression &&continuation);
+        TransLetIn(Variable &&var, Expression &&pre, Expression &&body);
     };
 
     using Alternative =
         std::variant<TransVar, TransConst, TransIf, TransApp, TransBinop, TransMonop, TransFun, TransLetIn>;
 
     Alternative rule;
-    explicit Rule(Alternative &&alternative);
+    std::unique_ptr<Expression> continuation;
+
+    Rule(Alternative &&alternative, Expression &&continuation);
 
     static Rule makeTransVar(Variable &&var, Expression &&continuation);
     static Rule makeTransConst(Value &&val, Expression &&continuation);

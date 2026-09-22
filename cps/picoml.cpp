@@ -95,94 +95,87 @@ Expression Expression::makeLet(Variable &&var, Expression &&pre, Expression &&bo
     return Expression(LetExpr(std::move(var), std::move(pre), std::move(body)));
 }
 
-Rule::TransVar::TransVar(Variable &&var, Expression &&continuation)
-    : var(std::make_unique<Variable>(std::move(var))), continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransVar::TransVar(Variable &&var) : var(std::make_unique<Variable>(std::move(var)))
 {
 }
 
-Rule::TransConst::TransConst(Value &&val, Expression &&continuation)
-    : val(std::make_unique<Value>(std::move(val))), continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransConst::TransConst(Value &&val) : val(std::make_unique<Value>(std::move(val)))
 {
 }
 
-Rule::TransIf::TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation)
+Rule::TransIf::TransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
     : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
-      dofalse(std::make_unique<Expression>(std::move(dofalse))),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+      dofalse(std::make_unique<Expression>(std::move(dofalse)))
 {
 }
 
-Rule::TransApp::TransApp(Expression &&fun, Expression &&arg, Expression &&continuation)
-    : fun(std::make_unique<Expression>(std::move(fun))), arg(std::make_unique<Expression>(std::move(arg))),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransApp::TransApp(Expression &&fun, Expression &&arg)
+    : fun(std::make_unique<Expression>(std::move(fun))), arg(std::make_unique<Expression>(std::move(arg)))
 {
 }
 
-Rule::TransBinop::TransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation)
-    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))), op(op),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransBinop::TransBinop(Expression &&left, Expression &&right, BinOp op)
+    : left(std::make_unique<Expression>(std::move(left))), right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 
-Rule::TransMonop::TransMonop(Expression &&right, BinOp op, Expression &&continuation)
-    : right(std::make_unique<Expression>(std::move(right))), op(op),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransMonop::TransMonop(Expression &&right, BinOp op)
+    : right(std::make_unique<Expression>(std::move(right))), op(op)
 {
 }
 
-Rule::TransFun::TransFun(Variable &&param, Expression &&body, Expression &&continuation)
-    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+Rule::TransFun::TransFun(Variable &&param, Expression &&body)
+    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body)))
 {
 }
 
-Rule::TransLetIn::TransLetIn(Variable &&var, Expression &&pre, Expression &&body, Expression &&continuation)
+Rule::TransLetIn::TransLetIn(Variable &&var, Expression &&pre, Expression &&body)
     : var(std::make_unique<Variable>(std::move(var))), pre(std::make_unique<Expression>(std::move(pre))),
-      body(std::make_unique<Expression>(std::move(body))),
-      continuation(std::make_unique<Expression>(std::move(continuation)))
+      body(std::make_unique<Expression>(std::move(body)))
 {
 }
 
-Rule::Rule(Alternative &&alternative) : rule(std::move(alternative))
+Rule::Rule(Alternative &&alternative, Expression &&continuation)
+    : rule(std::move(alternative)), continuation(std::make_unique<Expression>(std::move(continuation)))
 {
 }
 
 Rule Rule::makeTransVar(Variable &&var, Expression &&continuation)
 {
-    return Rule(TransVar(std::move(var), std::move(continuation)));
+    return Rule(TransVar(std::move(var)), std::move(continuation));
 }
 
 Rule Rule::makeTransConst(Value &&val, Expression &&continuation)
 {
-    return Rule(TransConst(std::move(val), std::move(continuation)));
+    return Rule(TransConst(std::move(val)), std::move(continuation));
 }
 
 Rule Rule::makeTransIf(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Expression &&continuation)
 {
-    return Rule(TransIf(std::move(pred), std::move(dotrue), std::move(dofalse), std::move(continuation)));
+    return Rule(TransIf(std::move(pred), std::move(dotrue), std::move(dofalse)), std::move(continuation));
 }
 
 Rule Rule::makeTransApp(Expression &&fun, Expression &&arg, Expression &&continuation)
 {
-    return Rule(TransApp(std::move(fun), std::move(arg), std::move(continuation)));
+    return Rule(TransApp(std::move(fun), std::move(arg)), std::move(continuation));
 }
 
 Rule Rule::makeTransBinop(Expression &&left, Expression &&right, BinOp op, Expression &&continuation)
 {
-    return Rule(TransBinop(std::move(left), std::move(right), op, std::move(continuation)));
+    return Rule(TransBinop(std::move(left), std::move(right), op), std::move(continuation));
 }
 
 Rule Rule::makeTransMonop(Expression &&right, BinOp op, Expression &&continuation)
 {
-    return Rule(TransMonop(std::move(right), op, std::move(continuation)));
+    return Rule(TransMonop(std::move(right), op), std::move(continuation));
 }
 
 Rule Rule::makeTransFun(Variable &&param, Expression &&body, Expression &&continuation)
 {
-    return Rule(TransFun(std::move(param), std::move(body), std::move(continuation)));
+    return Rule(TransFun(std::move(param), std::move(body)), std::move(continuation));
 }
 
 Rule Rule::makeTransLetIn(Variable &&var, Expression &&pre, Expression &&body, Expression &&continuation)
 {
-    return Rule(TransLetIn(std::move(var), std::move(pre), std::move(body), std::move(continuation)));
+    return Rule(TransLetIn(std::move(var), std::move(pre), std::move(body)), std::move(continuation));
 }
