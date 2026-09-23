@@ -61,7 +61,8 @@ struct Hole
         std::unique_ptr<Expression> rhs;
         Variable binder1;
         Variable binder2;
-        BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Variable &&binder2);
+        ::BinOp binop;
+        BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Variable &&binder2, ::BinOp binop);
     };
 
     struct Fun

@@ -23,13 +23,13 @@ Hole::If::If(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Varia
 
 Hole::App::App(Expression &&fun, Expression &&arg, Variable &&binder1, Variable &&binder2)
     : fun(std::make_unique<Expression>(std::move(fun))), arg(std::make_unique<Expression>(std::move(arg))),
-      binder1(binder1), binder2(binder2)
+      binder1(std::move(binder1)), binder2(std::move(binder2))
 {
 }
 
-Hole::BinOp::BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Variable &&binder2)
+Hole::BinOp::BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Variable &&binder2, ::BinOp binop)
     : lhs(std::make_unique<Expression>(std::move(lhs))), rhs(std::make_unique<Expression>(std::move(rhs))),
-      binder1(binder1), binder2(binder2)
+      binder1(std::move(binder1)), binder2(std::move(binder2)), binop(binop)
 {
 }
 
@@ -68,7 +68,8 @@ AppliedRule Hole::plug(Expression &&expr)
             }
             else if constexpr (std::is_same_v<T, BinOp>)
             {
-                throw std::runtime_error("Hole::BinOp: not implemented");
+                return AppliedRule(
+                    Rewrite(std::move(*arg.rhs), Expression::makeFunction(Variable(arg.binder1), std::move(expr))));
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
@@ -103,7 +104,7 @@ std::string Hole::getNextCursor()
             }
             else if constexpr (std::is_same_v<T, BinOp>)
             {
-                throw std::runtime_error("Hole::BinOp::getNextCursor: not implemented");
+                return to_string(*arg.lhs);
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
@@ -141,7 +142,11 @@ std::unique_ptr<Expression> Hole::getNextContinuation()
             }
             else if constexpr (std::is_same_v<T, BinOp>)
             {
-                throw std::runtime_error("Hole::BinOp::getNextContinuation: not implemented");
+                return std::make_unique<Expression>(Expression::makeFunction(
+                    Variable(arg.binder2),
+                    Expression::makeApp(clone(*continuation),
+                                        Expression::makeBinary(Expression(Variable(arg.binder2)),
+                                                               Expression(Variable(arg.binder1)), arg.binop))));
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
@@ -179,7 +184,7 @@ std::string Hole::render(const std::string &inner) const
             }
             else if constexpr (std::is_same_v<T, BinOp>)
             {
-                throw std::runtime_error("Hole::BinOp::render: not implemented");
+                return "[[" + to_string(*arg.rhs) + "]] (fun " + to_string(arg.binder1) + " -> " + inner + ")";
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
@@ -225,9 +230,10 @@ AppliedRule Applier::operator()(Rule::TransBinop &rule)
 {
     int id1 = epoch++;
     int id2 = epoch++;
-    return AppliedRule(Hole(Hole::BinOp(std::move(*rule.left), std::move(*rule.right),
-                                        Variable("__a" + std::to_string(id1)), Variable("__a" + std::to_string(id2))),
-                            clone(*continuation)));
+    return AppliedRule(
+        Hole(Hole::BinOp(std::move(*rule.left), std::move(*rule.right), Variable("__a" + std::to_string(id1)),
+                         Variable("__a" + std::to_string(id2)), rule.op),
+             clone(*continuation)));
 }
 
 AppliedRule Applier::operator()(Rule::TransMonop &rule)
