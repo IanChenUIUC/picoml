@@ -67,6 +67,11 @@ struct Hole
 
     struct Fun
     {
+        std::unique_ptr<Variable> param;
+        std::unique_ptr<Expression> body;
+        Variable binder;
+
+        Fun(Variable &&param, Expression &&body, Variable &&binder);
     };
 
     struct LetIn

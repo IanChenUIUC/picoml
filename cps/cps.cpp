@@ -33,6 +33,10 @@ Hole::BinOp::BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Varia
 {
 }
 
+Hole::Fun::Fun(Variable &&param, Expression &&body, Variable &&binder)
+    : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
+      binder(std::move(binder)) {};
+
 Hole::LetIn::LetIn(Expression &&pre) : pre(std::make_unique<Expression>(std::move(pre)))
 {
 }
@@ -73,7 +77,10 @@ AppliedRule Hole::plug(Expression &&expr)
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
-                throw std::runtime_error("Hole::Fun: not implemented");
+                return Expression::makeApp(
+                    clone(*continuation),
+                    Expression::makeFunction(Variable(*arg.param),
+                                             Expression::makeFunction(Variable(arg.binder), std::move(expr))));
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
@@ -108,7 +115,7 @@ std::string Hole::getNextCursor()
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
-                throw std::runtime_error("Hole::Fun::getNextCursor: not implemented");
+                return to_string(*arg.body);
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
@@ -150,7 +157,7 @@ std::unique_ptr<Expression> Hole::getNextContinuation()
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
-                throw std::runtime_error("Hole::Fun::getNextContinuation: not implemented");
+                return std::make_unique<Expression>(Expression(Variable(arg.binder)));
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
@@ -188,7 +195,8 @@ std::string Hole::render(const std::string &inner) const
             }
             else if constexpr (std::is_same_v<T, Fun>)
             {
-                throw std::runtime_error("Hole::Fun::render: not implemented");
+                return to_string(Paren{*continuation}) + " (fun " + to_string(*arg.param) + " -> fun " +
+                       to_string(arg.binder) + " -> " + inner + ")";
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
@@ -248,7 +256,9 @@ AppliedRule Applier::operator()(Rule::TransMonop &rule)
 
 AppliedRule Applier::operator()(Rule::TransFun &rule)
 {
-    throw std::runtime_error("TransFun: not implemented");
+    return AppliedRule(
+        Hole(Hole::Fun(std::move(*rule.param), std::move(*rule.body), Variable("__a" + std::to_string(epoch++))),
+             clone(*continuation)));
 }
 
 AppliedRule Applier::operator()(Rule::TransLetIn &rule)
