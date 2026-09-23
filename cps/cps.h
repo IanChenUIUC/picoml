@@ -48,14 +48,20 @@ struct Hole
 
     struct App
     {
+        std::unique_ptr<Expression> fun;
         std::unique_ptr<Expression> arg;
-        explicit App(Expression &&arg);
+        Variable binder1;
+        Variable binder2;
+        App(Expression &&fun, Expression &&arg, Variable &&binder1, Variable &&binder2);
     };
 
     struct BinOp
     {
+        std::unique_ptr<Expression> lhs;
         std::unique_ptr<Expression> rhs;
-        explicit BinOp(Expression &&arg);
+        Variable binder1;
+        Variable binder2;
+        BinOp(Expression &&lhs, Expression &&rhs, Variable &&binder1, Variable &&binder2);
     };
 
     struct Fun
