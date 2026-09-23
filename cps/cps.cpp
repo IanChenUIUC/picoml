@@ -1,6 +1,6 @@
 #include "cps.h"
 #include "picoml.h"
-#include <stdexcept>
+
 #include <type_traits>
 
 Rewrite::Rewrite(Expression &&expr, Expression &&continuation)
@@ -37,7 +37,9 @@ Hole::Fun::Fun(Variable &&param, Expression &&body, Variable &&binder)
     : param(std::make_unique<Variable>(std::move(param))), body(std::make_unique<Expression>(std::move(body))),
       binder(std::move(binder)) {};
 
-Hole::LetIn::LetIn(Expression &&pre) : pre(std::make_unique<Expression>(std::move(pre)))
+Hole::LetIn::LetIn(Expression &&pre, Expression &&body, Variable &&var)
+    : pre(std::make_unique<Expression>(std::move(pre))), body(std::make_unique<Expression>(std::move(body))),
+      var(std::make_unique<Variable>(std::move(var)))
 {
 }
 
@@ -84,7 +86,8 @@ AppliedRule Hole::plug(Expression &&expr)
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
-                throw std::runtime_error("Hole::LetIn: not implemented");
+                return AppliedRule(
+                    Rewrite(std::move(*arg.pre), Expression::makeFunction(Variable(*arg.var), std::move(expr))));
             }
             else
                 static_assert(false, "non-exhaustive visitor");
@@ -119,7 +122,7 @@ std::string Hole::getNextCursor()
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
-                throw std::runtime_error("Hole::LetIn::getNextCursor: not implemented");
+                return to_string(*arg.body);
             }
             else
                 static_assert(false, "non-exhaustive visitor");
@@ -161,7 +164,7 @@ std::unique_ptr<Expression> Hole::getNextContinuation()
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
-                throw std::runtime_error("Hole::LetIn::getNextContinuation: not implemented");
+                return std::make_unique<Expression>(clone(*continuation));
             }
             else
                 static_assert(false, "non-exhaustive visitor");
@@ -200,7 +203,7 @@ std::string Hole::render(const std::string &inner) const
             }
             else if constexpr (std::is_same_v<T, LetIn>)
             {
-                throw std::runtime_error("Hole::LetIn::render: not implemented");
+                return "[[" + to_string(*arg.pre) + "]] (fun " + to_string(*arg.var) + " -> " + inner + ")";
             }
             else
                 static_assert(false, "non-exhaustive visitor");
@@ -263,5 +266,6 @@ AppliedRule Applier::operator()(Rule::TransFun &rule)
 
 AppliedRule Applier::operator()(Rule::TransLetIn &rule)
 {
-    throw std::runtime_error("TransLetIn: not implemented");
+    return AppliedRule(
+        Hole(Hole::LetIn(std::move(*rule.pre), std::move(*rule.body), std::move(*rule.var)), clone(*continuation)));
 }

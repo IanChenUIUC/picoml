@@ -77,7 +77,9 @@ struct Hole
     struct LetIn
     {
         std::unique_ptr<Expression> pre;
-        explicit LetIn(Expression &&pre);
+        std::unique_ptr<Expression> body;
+        std::unique_ptr<Variable> var;
+        LetIn(Expression &&pre, Expression &&body, Variable &&var);
     };
 
     using Alternative = std::variant<IfR, If, App, BinOp, Fun, LetIn>;
