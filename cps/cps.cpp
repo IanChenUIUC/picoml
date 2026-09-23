@@ -9,15 +9,15 @@ Rewrite::Rewrite(Expression &&expr, Expression &&continuation)
 {
 }
 
-Hole::IfR::IfR(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
+Hole::IfR::IfR(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Variable &&binder)
     : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
-      dofalse(std::make_unique<Expression>(std::move(dofalse)))
+      dofalse(std::make_unique<Expression>(std::move(dofalse))), binder(std::move(binder))
 {
 }
 
-Hole::If::If(Expression &&pred, Expression &&dotrue, Expression &&dofalse)
+Hole::If::If(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Variable &&binder)
     : pred(std::make_unique<Expression>(std::move(pred))), dotrue(std::make_unique<Expression>(std::move(dotrue))),
-      dofalse(std::make_unique<Expression>(std::move(dofalse)))
+      dofalse(std::make_unique<Expression>(std::move(dofalse))), binder(std::move(binder))
 {
 }
 
@@ -45,15 +45,16 @@ AppliedRule Hole::plug(Expression &&expr)
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, IfR>)
             {
-                return AppliedRule(Hole(Hole::If(std::move(*arg.pred), std::move(expr), std::move(*arg.dofalse)),
+                return AppliedRule(Hole(Hole::If(std::move(*arg.pred), std::move(expr), std::move(*arg.dofalse),
+                                                 std::move(arg.binder)),
                                         clone(*continuation)));
             }
             else if constexpr (std::is_same_v<T, If>)
             {
                 return AppliedRule(
                     Rewrite(std::move(*arg.pred),
-                            Expression::makeFunction(Variable("b"),
-                                                     Expression::makeIf(Expression(Variable("b")),
+                            Expression::makeFunction(Variable(arg.binder),
+                                                     Expression::makeIf(Expression(Variable(arg.binder)),
                                                                         std::move(*arg.dotrue), std::move(expr)))));
             }
             else if constexpr (std::is_same_v<T, App>)
@@ -155,13 +156,14 @@ std::string Hole::render(const std::string &inner) const
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, IfR>)
             {
-                return "[[" + to_string(*arg.pred) + "]] (fun b -> if b then " + inner + " else [[" +
-                       to_string(*arg.dofalse) + "]] (" + to_string(*continuation) + "))";
+                return "[[" + to_string(*arg.pred) + "]] (fun " + to_string(arg.binder) + " -> if " +
+                       to_string(arg.binder) + " then " + inner + " else [[" + to_string(*arg.dofalse) + "]] (" +
+                       to_string(*continuation) + "))";
             }
             else if constexpr (std::is_same_v<T, If>)
             {
-                return "[[" + to_string(*arg.pred) + "]] (fun b -> if b then " + to_string(*arg.dotrue) + " else " +
-                       inner + ")";
+                return "[[" + to_string(*arg.pred) + "]] (fun " + to_string(arg.binder) + " -> if " +
+                       to_string(arg.binder) + " then " + to_string(*arg.dotrue) + " else " + inner + ")";
             }
             else if constexpr (std::is_same_v<T, App>)
             {
@@ -197,7 +199,8 @@ AppliedRule Applier::operator()(Rule::TransConst &rule)
 
 AppliedRule Applier::operator()(Rule::TransIf &rule)
 {
-    return AppliedRule(Hole(Hole::IfR(std::move(*rule.pred), std::move(*rule.dotrue), std::move(*rule.dofalse)),
+    return AppliedRule(Hole(Hole::IfR(std::move(*rule.pred), std::move(*rule.dotrue), std::move(*rule.dofalse),
+                                      Variable("__a" + std::to_string(epoch++))),
                             clone(*continuation)));
 }
 

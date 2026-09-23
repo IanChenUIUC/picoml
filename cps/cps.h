@@ -33,7 +33,8 @@ struct Hole
         std::unique_ptr<Expression> pred;
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
-        IfR(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+        Variable binder;
+        IfR(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Variable &&binder);
     };
 
     struct If
@@ -41,7 +42,8 @@ struct Hole
         std::unique_ptr<Expression> pred;
         std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
-        If(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
+        Variable binder;
+        If(Expression &&pred, Expression &&dotrue, Expression &&dofalse, Variable &&binder);
     };
 
     struct App
@@ -82,6 +84,7 @@ struct Hole
 struct Applier
 {
     std::unique_ptr<Expression> continuation;
+    int &epoch;
 
     AppliedRule operator()(Rule::TransVar &rule);
     AppliedRule operator()(Rule::TransConst &rule);

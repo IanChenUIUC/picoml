@@ -45,6 +45,7 @@ void transform(const std::string &expr)
     std::unique_ptr<Expression> continuation = std::move(initial->continuation);
     std::vector<Hole> context;
     bool done = false;
+    int epoch = 0;
 
     do
     {
@@ -59,7 +60,7 @@ void transform(const std::string &expr)
 
         std::cout << state << std::endl;
 
-        auto applied = std::visit(Applier{std::move(continuation)}, rule->rule);
+        auto applied = std::visit(Applier{std::move(continuation), epoch}, rule->rule);
         std::visit(
             [&](auto &&arg) {
                 using T = std::decay_t<decltype(arg)>;
