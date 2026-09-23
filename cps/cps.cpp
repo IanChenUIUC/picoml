@@ -45,9 +45,9 @@ AppliedRule Hole::plug(Expression &&expr)
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, IfR>)
             {
-                return AppliedRule(Hole(Hole::If(std::move(*arg.pred), std::move(expr), std::move(*arg.dofalse),
-                                                 std::move(arg.binder)),
-                                        clone(*continuation)));
+                return AppliedRule(Hole(
+                    Hole::If(std::move(*arg.pred), std::move(expr), std::move(*arg.dofalse), std::move(arg.binder)),
+                    clone(*continuation)));
             }
             else if constexpr (std::is_same_v<T, If>)
             {
@@ -216,7 +216,12 @@ AppliedRule Applier::operator()(Rule::TransBinop &rule)
 
 AppliedRule Applier::operator()(Rule::TransMonop &rule)
 {
-    throw std::runtime_error("TransMonop: not implemented");
+    int id = epoch++;
+    Expression body = Expression::makeFunction(
+        Variable("__a" + std::to_string(id)),
+        Expression::makeApp(clone(*continuation),
+                            Expression::makeUnary(Expression(Variable("__a" + std::to_string(id))), rule.op)));
+    return AppliedRule(Rewrite(std::move(*rule.right), std::move(body)));
 }
 
 AppliedRule Applier::operator()(Rule::TransFun &rule)
