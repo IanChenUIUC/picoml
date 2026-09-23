@@ -14,10 +14,16 @@ template <typename T> std::string to_string(const T &value)
     return os.str();
 }
 
+struct Rewrite;
+struct Hole;
+using AppliedRule = std::variant<Expression, Rewrite, Hole>;
+
 struct Rewrite
 {
     std::unique_ptr<Expression> expr;
-    explicit Rewrite(Expression &&expr);
+    std::unique_ptr<Expression> continuation;
+
+    Rewrite(Expression &&expr, Expression &&continuation);
 };
 
 struct Hole
@@ -25,14 +31,17 @@ struct Hole
     struct IfR
     {
         std::unique_ptr<Expression> pred;
+        std::unique_ptr<Expression> dotrue;
         std::unique_ptr<Expression> dofalse;
-        IfR(Expression &&pred, Expression &&dofalse);
+        IfR(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
     struct If
     {
         std::unique_ptr<Expression> pred;
-        explicit If(Expression &&pred);
+        std::unique_ptr<Expression> dotrue;
+        std::unique_ptr<Expression> dofalse;
+        If(Expression &&pred, Expression &&dotrue, Expression &&dofalse);
     };
 
     struct App
@@ -60,19 +69,14 @@ struct Hole
     using Alternative = std::variant<IfR, If, App, BinOp, Fun, LetIn>;
 
     Alternative hole;
-
-    explicit Hole(Alternative &&alternative);
-};
-
-struct AppliedRule
-{
-    using Alternative = std::variant<Value, Variable, Rewrite, Hole>;
-
-    Alternative result;
     std::unique_ptr<Expression> continuation;
 
-    explicit AppliedRule(Alternative &&alernative);
-    AppliedRule(Alternative &&alernative, Expression &&continuation);
+    AppliedRule plug(Expression &&expr);
+    std::string getNextCursor();
+    std::unique_ptr<Expression> getNextContinuation();
+    std::string render(const std::string &inner) const;
+
+    Hole(Alternative &&alternative, Expression &&continuation);
 };
 
 struct Applier

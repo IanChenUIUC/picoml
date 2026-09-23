@@ -43,7 +43,8 @@ void transform(const std::string &expr)
 
     std::string cursor = to_string(initial->rule);
     std::unique_ptr<Expression> continuation = std::move(initial->continuation);
-    std::vector<AppliedRule> context;
+    std::vector<Hole> context;
+    bool done = false;
 
     do
     {
@@ -52,35 +53,77 @@ void transform(const std::string &expr)
         if (!rule)
             throw std::runtime_error("stuck at '" + line + "': " + last_parse_error());
 
-        std::cout << line << std::endl; // TODO
+        std::string state = line;
+        for (auto frame = context.rbegin(); frame != context.rend(); ++frame)
+            state = frame->render(state);
+
+        std::cout << state << std::endl;
 
         auto applied = std::visit(Applier{std::move(continuation)}, rule->rule);
-        continuation = std::move(applied.continuation);
         std::visit(
             [&](auto &&arg) {
                 using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, Value>)
+                if constexpr (std::is_same_v<T, Expression>)
                 {
-                    cursor = to_string(Expression::makeApp(std::move(*continuation), Expression(arg)));
-                }
-                else if constexpr (std::is_same_v<T, Variable>)
-                {
-                    cursor = to_string(Expression::makeApp(std::move(*continuation), Expression(arg)));
+                    Expression cur = std::move(arg);
+                    bool unwinding = true;
+                    while (unwinding && !context.empty())
+                    {
+                        Hole top = std::move(context.back());
+                        context.pop_back();
+
+                        unwinding = std::visit(
+                            [&](auto &&next) -> bool {
+                                using T2 = std::decay_t<decltype(next)>;
+                                if constexpr (std::is_same_v<T2, Expression>)
+                                {
+                                    cur = std::move(next);
+                                    return true;
+                                }
+                                else if constexpr (std::is_same_v<T2, Rewrite>)
+                                {
+                                    cursor = to_string(*next.expr);
+                                    continuation = std::move(next.continuation);
+                                    return false;
+                                }
+                                else if constexpr (std::is_same_v<T2, Hole>)
+                                {
+                                    cursor = next.getNextCursor();
+                                    continuation = next.getNextContinuation();
+                                    context.push_back(std::move(next));
+                                    return false;
+                                }
+                                else
+                                    static_assert(false, "non-exhaustive visitor!");
+                            },
+                            top.plug(std::move(cur)));
+                    }
+
+                    if (unwinding)
+                    {
+                        cursor = to_string(cur);
+                        done = true;
+                    }
                 }
                 else if constexpr (std::is_same_v<T, Rewrite>)
                 {
+                    cursor = to_string(*arg.expr);
+                    continuation = std::move(arg.continuation);
                 }
                 else if constexpr (std::is_same_v<T, Hole>)
                 {
+                    cursor = arg.getNextCursor();
+                    continuation = arg.getNextContinuation();
+                    context.push_back(std::move(arg));
                 }
                 else
                 {
                     static_assert(false, "non-exhaustive visitor!");
                 }
             },
-            applied.result);
+            applied);
 
-    } while (!context.empty());
+    } while (!done);
 
     std::cout << cursor << "\n";
 }

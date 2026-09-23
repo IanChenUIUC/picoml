@@ -1,6 +1,7 @@
 #include "picoml.h"
 
 #include <memory>
+#include <type_traits>
 
 BinOp::BinOp(BinOp::Op op) : op(op)
 {
@@ -93,6 +94,33 @@ Expression Expression::makeApp(Expression &&fun, Expression &&arg)
 Expression Expression::makeLet(Variable &&var, Expression &&pre, Expression &&body)
 {
     return Expression(LetExpr(std::move(var), std::move(pre), std::move(body)));
+}
+
+Expression clone(const Expression &expression)
+{
+    return std::visit(
+        [](auto &&arg) -> Expression {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, Value> || std::is_same_v<T, Variable>)
+                return Expression(T(arg));
+            else if constexpr (std::is_same_v<T, Expression::PairExpr>)
+                return Expression::makePair(clone(*arg.left), clone(*arg.right));
+            else if constexpr (std::is_same_v<T, Expression::BinaryExpr>)
+                return Expression::makeBinary(clone(*arg.left), clone(*arg.right), arg.op);
+            else if constexpr (std::is_same_v<T, Expression::UnaryExpr>)
+                return Expression::makeUnary(clone(*arg.right), arg.op);
+            else if constexpr (std::is_same_v<T, Expression::AppExpr>)
+                return Expression::makeApp(clone(*arg.fun), clone(*arg.arg));
+            else if constexpr (std::is_same_v<T, Expression::FunExpr>)
+                return Expression::makeFunction(Variable(*arg.param), clone(*arg.body));
+            else if constexpr (std::is_same_v<T, Expression::LetExpr>)
+                return Expression::makeLet(Variable(*arg.var), clone(*arg.pre), clone(*arg.body));
+            else if constexpr (std::is_same_v<T, Expression::IfExpr>)
+                return Expression::makeIf(clone(*arg.pred), clone(*arg.dotrue), clone(*arg.dofalse));
+            else
+                static_assert(false, "non-exhaustive visitor");
+        },
+        expression.expr);
 }
 
 Rule::TransVar::TransVar(Variable &&var) : var(std::make_unique<Variable>(std::move(var)))

@@ -129,6 +129,8 @@ struct Expression
     static Expression makeLet(Variable &&var, Expression &&pre, Expression &&body);
 };
 
+Expression clone(const Expression &expression);
+
 struct Rule
 {
     struct TransVar
